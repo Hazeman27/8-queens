@@ -51,9 +51,9 @@ public:
 	ChessBoard(int size) :
 		currentChessFigureIndex(4),
 		size(size),
-		boardPosition({ 0.0f, 0.0f }),
-		boardSize({ 0.0f, 0.0f }),
-		tileSize({ 0.0f, 0.0f }),
+		boardPosition{ 0.0f, 0.0f },
+		boardSize{ 0.0f, 0.0f },
+		tileSize{ 0.0f, 0.0f },
 		tileColorBlack(5, 113, 55),
 		tileColorWhite(252, 244, 225),
 		figures{
@@ -91,9 +91,20 @@ private:
 		return position * tileSize + boardPosition;
 	}
 
+	olc::vi2d GetTilePositionI(const size_t col, const size_t row)
+	{
+		return {
+			static_cast<int>(tileSize.x * col + boardPosition.x),
+			static_cast<int>(tileSize.y * row + boardPosition.y)
+		};
+	}
+
 	bool MouseIsInRectBounds(const olc::vf2d& rectPos, const olc::vi2d& rectSize)
 	{
-		return GetMouseX() > rectPos.x && GetMouseX() < rectSize.x && GetMouseY() > rectPos.y && GetMouseY() < rectSize.y;
+		int mouseX = GetMouseX();
+		int mouseY = GetMouseY();
+
+		return mouseX > rectPos.x && mouseX < rectPos.x + rectSize.x && mouseY > rectPos.y && mouseY < rectPos.y + rectSize.y;
 	}
 
 	void SetBoardMeasures()
@@ -104,7 +115,7 @@ private:
 		float tileWidth = std::floorf(boardWidth / size);
 
 		boardPosition = { (ScreenWidth() - boardWidth) / 2.0f, (ScreenHeight() - boardWidth) / 2.0f };
-		boardSize = { boardWidth, boardWidth };
+		boardSize = { tileWidth * size, tileWidth * size };
 		tileSize = { tileWidth, tileWidth };
 	}
 
@@ -119,7 +130,10 @@ private:
 
 	void DrawBoard()
 	{
-		DrawRect(boardPosition, boardSize, tileColorWhite);
+		olc::vf2d posOffset{ -1.0f, -1.0f };
+		olc::vf2d sizeOffset{ 1.0f, 1.0f };
+
+		DrawRect(boardPosition + posOffset, boardSize + sizeOffset, tileColorWhite);
 
 		for (int i = 0; i < size; i++) {
 			for (int j = 0; j < size; j++) {
@@ -132,7 +146,7 @@ private:
 	void DrawQueens()
 	{
 		Figure* figure = CurrentFigure();
-		olc::vi2d currentFigureSpriteSize = { figure->blackSprite->width, figure->blackSprite->height };
+		olc::vi2d currentFigureSpriteSize{ figure->blackSprite->width, figure->blackSprite->height };
 
 		for (auto& position : queensPositions) {
 			olc::vf2d pos = GetTilePosition(position) + (tileSize - currentFigureSpriteSize) / 2.0f;
@@ -152,21 +166,19 @@ private:
 	}
 
 	void DrawStrings(const std::vector<std::string>& strings) {
-		float topOffset = boardPosition.y;
-
 		for (size_t i = 0; i < strings.size(); i++) {
-			olc::vf2d position = { 5.0f, i * 12.0f + topOffset };
+			olc::vf2d position{ 5.0f, i * 12.0f + boardPosition.y };
 			DrawString(position, strings.at(i), tileColorWhite);
 		}
 	}
 
 	void HighlightThreats()
 	{
-		size_t targetIndex = -1;
-		std::vector<size_t> threatIndices;
+		int targetIndex = -1;
+		std::vector<size_t> threatIndices{};
 
-		for (size_t i = 0; i < size; i++) {
-			olc::vf2d position = GetTilePosition(queensPositions[i]);
+		for (int i = 0; i < size; i++) {
+			olc::vf2d position(GetTilePosition(queensPositions[i]));
 
 			if (MouseIsInRectBounds(position, tileSize)) {
 				targetIndex = i;
@@ -175,18 +187,18 @@ private:
 			}
 		}
 
-		if (targetIndex < 0)
+		if (targetIndex < 0 || threatIndices.size() == 0)
 			return;
 
-		olc::vi2d targetPosition = {
-			static_cast<int>(tileSize.x * targetIndex * 1.5f),
-			static_cast<int>(tileSize.y * targetIndex * 1.5f)
-		};
+		olc::vi2d targetPosition = GetTilePositionI(
+			queensPositions[targetIndex].x,
+			queensPositions[targetIndex].y
+		) + tileSize / 2.0f;
 
 		for (auto& index : threatIndices) {
 			DrawLine(
 				targetPosition,
-				{ static_cast<int>(tileSize.x * index * 1.5f), static_cast<int>(tileSize.y * index * 1.5f) },
+				GetTilePositionI(queensPositions[index].x, queensPositions[index].y) + tileSize / 2.0f,
 				olc::RED,
 				0xF0F0F0F0
 			);
@@ -214,7 +226,8 @@ public:
 		DrawQueens();
 
 		DrawStrings({
-			"Current figure: " + CurrentFigure()->name,
+			"Size: " + std::to_string(size),
+			"Figure: " + CurrentFigure()->name,
 			"Search type: Taboo",
 			STRING_SEPARATOR,
 			"C - Change figure",
@@ -249,12 +262,14 @@ public:
 
 	static std::vector<size_t> GetThreatsIndices(const size_t targetIndex, const std::vector<olc::vi2d>& positions)
 	{
-		std::vector<size_t> threats;
-		size_t positionsCount = positions.size();
+		std::vector<size_t> threats{};
+
+		if (targetIndex == positions.size() - 1)
+			return threats;
 
 		auto& curr = positions.at(targetIndex);
 
-		for (size_t j = targetIndex; j < positionsCount; j++) {
+		for (size_t j = targetIndex + 1; j < positions.size(); j++) {
 			auto& pos = positions[j];
 
 			if (pos.y == curr.y || std::abs(curr.x - pos.x) == std::abs(curr.y - pos.y))
