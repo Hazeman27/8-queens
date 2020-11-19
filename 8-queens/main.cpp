@@ -1,30 +1,25 @@
 #include "ChessBoard.h"
 
-HeuristicResult LocalThreatsHeuristic(int trgIndex, const std::vector<olc::vi2d>& positions)
+std::vector<HeuristicValue> LocalThreatsHeuristic(int trgIndex, const std::vector<olc::vi2d>& positions)
 {
-	HeuristicMapping mapping;
+	std::vector<HeuristicValue> values{};
 
 	int boardSize = positions.size();
 	olc::vi2d targetPos = positions[trgIndex];
 
 	auto getThreatsAtPos = [&](olc::vi2d position) {
-		return std::make_pair(position, ChessBoard::GetThreatsIndicesForPos(position, positions).size());
+		return HeuristicValue{ position, static_cast<int>(ChessBoard::GetThreatsIndicesForPos(position, positions).size()) };
 	};
 
-	for (int i = 0; i < boardSize; i++) {
-		if (i == targetPos.y)
-			continue;
-		mapping.push_back(getThreatsAtPos({ targetPos.x, i }));
-	}
+	for (int i = 0; i < boardSize; i++)
+		values.push_back(getThreatsAtPos({ targetPos.x, i }));
 
-	mapping.push_back(getThreatsAtPos(targetPos));
-
-	return { mapping, mapping.back().second };
+	return values;
 }
 
-HeuristicResult GlobalThreatsHeuristic(int trgIndex, const std::vector<olc::vi2d>& positions)
+std::vector<HeuristicValue> GlobalThreatsHeuristic(int trgIndex, const std::vector<olc::vi2d>& positions)
 {
-	HeuristicMapping mapping;
+	std::vector<HeuristicValue> values{};
 
 	int boardSize = positions.size();
 	olc::vi2d trgPos = positions[trgIndex];
@@ -46,29 +41,22 @@ HeuristicResult GlobalThreatsHeuristic(int trgIndex, const std::vector<olc::vi2d
 			threatsSum += threats;
 		}
 
-		return std::make_pair(position, threatsSum);
+		return HeuristicValue{ position, threatsSum };
 	};
 
-	for (int i = 0; i < boardSize; i++) {
-		if (i == trgPos.y)
-			continue;
-		mapping.push_back(getThreatsAtPos({ trgPos.x, i }));
-	}
+	for (int i = 0; i < boardSize; i++)
+		values.push_back(getThreatsAtPos({ trgPos.x, i }));
 
-	mapping.push_back(getThreatsAtPos(trgPos));
-
-	return { mapping, mapping.back().second };
+	return values;
 }
 
 
 int main()
 {
-	std::vector<HeuristicFunctionEntry> heuristicFunctions{
+	ChessBoard board(8, {
 		std::make_pair("Local Threats", LocalThreatsHeuristic),
 		std::make_pair("Global Threats", GlobalThreatsHeuristic),
-	};
-
-	ChessBoard board(8, heuristicFunctions);
+	});
 
 	if (board.Construct(430, 300, 2, 2))
 		board.Start();

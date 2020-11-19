@@ -16,14 +16,16 @@ constexpr int8_t MIN_BOARD_SIZE = 6;
 enum class TileColor { BLACK, WHITE };
 enum class BoardSide { TOP, BOTTOM, LEFT };
 
-using HeuristicMapping = std::vector<std::pair<olc::vi2d, int>>;
+struct HeuristicValue {
+	olc::vi2d position;
+	int value;
 
-struct HeuristicResult {
-	HeuristicMapping mapping;
-	int result;
+	bool operator == (const HeuristicValue& other) {
+		return position == other.position && value == other.value;
+	}
 };
 
-typedef HeuristicResult (*HeuristicFunction)(int trgIndex, const std::vector<olc::vi2d>& positions);
+typedef std::vector<HeuristicValue> (*HeuristicFunction)(int trgIndex, const std::vector<olc::vi2d>& positions);
 using HeuristicFunctionEntry = std::pair<std::string, HeuristicFunction>;
 
 struct Figure {
@@ -184,31 +186,30 @@ private:
 		if (currentHeuristicResultFigureIndex == INVALID_FIGURE)
 			return;
 
-		auto& heuristicEntry = heuristicFunctions.at(currentHeuristicFunctionIndex);
-		auto heuristicFunction = heuristicEntry.second;
+		auto& [_, heuristicFunction] = heuristicFunctions.at(currentHeuristicFunctionIndex);
 
-		auto result = heuristicFunction(currentHeuristicResultFigureIndex, figuresPositions);
+		auto results = heuristicFunction(currentHeuristicResultFigureIndex, figuresPositions);
 
-		auto drawResult = [&](olc::vi2d position, int result) {
+		auto drawResult = [&](HeuristicValue result) {
+			auto& [position, value] = result;
+			
 			olc::vf2d tilePos = GetTilePosition(position);
 			olc::vf2d fgPos = { tilePos.x + 3.0f, tilePos.y + (tileSize.y / 2.0f) + 3.0f };
 			
-			DrawString(fgPos, std::to_string(result), GetTileColor(position, true));
+			DrawString(fgPos, std::to_string(value), GetTileColor(position, true));
 		};
 
-		for (auto& res : result.mapping)
-			drawResult(res.first, res.second);
+		auto& trgRes = results.at(figuresPositions[currentHeuristicResultFigureIndex].y);
 
-		auto& trgPos = figuresPositions.at(currentHeuristicResultFigureIndex);
-
-		olc::vf2d tilePos = GetTilePosition(trgPos);
+		olc::vf2d tilePos = GetTilePosition(trgRes.position);
 		olc::vf2d bgPos = { tilePos.x, tilePos.y + (tileSize.y / 2.0f) };
 		olc::vi2d bgSize = { static_cast<int>(tileSize.x), static_cast<int>(tileSize.y / 2) };
 
-		FillRect(bgPos, bgSize, GetTileColor(trgPos));
+		FillRect(bgPos, bgSize, GetTileColor(trgRes.position));
+		DrawRect(GetTilePosition(trgRes.position), tileSize, olc::BLUE);
 
-		drawResult(trgPos, result.result);
-		DrawRect(GetTilePosition(trgPos), tileSize, olc::BLUE);
+		for (auto& result : results)
+			drawResult(result);
 	}
 
 	void DrawStrings(const std::vector<std::string>&& strings, BoardSide side = BoardSide::LEFT) {
