@@ -1,5 +1,8 @@
 #include "ChessBoard.h"
+#include "HelpScreen.h"
+#include "MenuScreen.h"
 #include "Heuristic.h"
+#include "Solver.h"
 
 
 std::vector<ntf::HeuristicValue> LocalThreatsHeuristic(uint32_t trgIndex, const std::vector<olc::vi2d>& positions)
@@ -53,16 +56,36 @@ std::vector<ntf::HeuristicValue> GlobalThreatsHeuristic(uint32_t trgIndex, const
 	return values;
 }
 
+ntf::Solution BeamSearchSolver(const olc::vi2d& positions, const ntf::HeuristicFunction heuristicFunction)
+{
+	return {};
+}
+
+ntf::Solution TabooSearchSolver(const olc::vi2d& positions, const ntf::HeuristicFunction heuristicFunction)
+{
+	return {};
+}
 
 int main()
 {
-	ntf::ChessBoard board(8, {
-		{ "Local Threats", LocalThreatsHeuristic },
-		{ "Global Threats", GlobalThreatsHeuristic },
-	});
+	ntf::Screen* board = new ntf::ChessBoard(
+		{{ "Local Threats", LocalThreatsHeuristic }, { "Global Threats", GlobalThreatsHeuristic }},
+		{{ "Beam Search", BeamSearchSolver }, { "Taboo Search", TabooSearchSolver }}
+	);
 
-	if (board.Construct(430, 300, 2, 2))
-		board.Start();
+	ntf::Screen* help = new ntf::HelpScreen();
+	ntf::Screen* menu = new ntf::MenuScreen();
+
+	std::vector<ntf::Theme> themes{
+		ntf::Theme{ "Dark", "chess", {57, 57, 57}, {255, 255, 255} },
+		ntf::Theme{ "Green", "chess_green", {5, 113, 55}, {252, 244, 225} },
+		ntf::Theme{ "Pink", "chess_pink", {3, 11, 30}, {250, 142, 200} },
+	};
+
+	ntf::Window window({ board, help, menu }, themes, 0);
+
+	if (window.Construct(450, 350, 2, 2))
+		window.Start();
 
 	return 0;
 }

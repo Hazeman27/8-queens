@@ -1,123 +1,85 @@
 #pragma once
 
-#define OLC_PGE_APPLICATION
-#include "olcPixelGameEngine.h"
+#include "Window.h"
+#include "Figure.h"
 #include "Heuristic.h"
-#include <vector>
+#include "Solver.h"
 #include <random>
+
 
 namespace ntf {
 	constexpr int16_t INVALID_FIGURE = -1;
-	constexpr const char* STRING_SEPARATOR = "--------------";
 
-	constexpr float STRING_GAP = 5.0f;
-	constexpr float STRING_HEIGHT = 12.0f;
-
+	constexpr uint8_t DEFAULT_BOARD_SIZE = 8U;
 	constexpr int8_t MAX_BOARD_SIZE = 16;
 	constexpr int8_t MIN_BOARD_SIZE = 4;
+	
+	constexpr uint32_t DEFAULT_FIGURE_INDEX = 4U;
+	constexpr uint32_t FIGURES_COUNT = 6U;
 
 	enum class TileColor { BLACK, WHITE };
-	enum class BoardSide { TOP, BOTTOM, LEFT };
+	enum class BoardSide { TOP, RIGHT, BOTTOM, LEFT };
 
-
-	struct Figure {
-		std::string name;
-
-		olc::Sprite* blackSprite;
-		olc::Sprite* whiteSprite;
-
-		Figure(const std::string& name, const std::string& blackSpritePath, const std::string& whiteSpritePath) :
-			name(name),
-			blackSprite(new olc::Sprite(blackSpritePath)),
-			whiteSprite(new olc::Sprite(whiteSpritePath))
-		{}
-
-		Figure(std::string&& name, std::string&& blackSpritePath, std::string&& whiteSpritePath) :
-			name(std::move(name)),
-			blackSprite(new olc::Sprite(std::move(blackSpritePath))),
-			whiteSprite(new olc::Sprite(std::move(whiteSpritePath)))
-		{}
-
-		~Figure()
-		{
-			delete blackSprite;
-			delete whiteSprite;
-		}
-	};
-
-	class ChessBoard : public olc::PixelGameEngine
+	class ChessBoard : public Screen
 	{
 	private:
 		int16_t currentHeuristicResultFigureIndex;
 		int16_t selectedFigureIndex;
-		uint8_t currentChessFigureIndex;
+		uint8_t currentFigureIndex;
 		uint8_t currentHeuristicIndex;
+		uint8_t currentSolverIndex;
 		uint8_t size;
 
-		olc::Pixel tileColorBlack;
-		olc::Pixel tileColorWhite;
+		Solution* currentSolution;
 
 		olc::vf2d boardPosition;
 		olc::vf2d boardSize;
 		olc::vf2d tileSize;
 
 		std::vector<Heuristic> heuristics;
+		std::vector<Solver> solvers;
 
 		std::vector<olc::vi2d> figuresPositions;
-		std::array<Figure*, 6> figures;
+		std::array<Figure*, FIGURES_COUNT> figures;
 
+		Window* window;
 		std::default_random_engine randomGenerator;
 
 	public:
-		ChessBoard(const uint8_t size, const std::vector<Heuristic>& heuristicFunctions) :
+		ChessBoard(const std::vector<Heuristic>& heuristics, const std::vector<Solver>& solvers) :
+			Screen("Puzzle", olc::P, "P"),
 			currentHeuristicResultFigureIndex(INVALID_FIGURE),
 			selectedFigureIndex(INVALID_FIGURE),
-			currentChessFigureIndex(4),
+			currentFigureIndex(DEFAULT_FIGURE_INDEX),
 			currentHeuristicIndex(0),
-			size(size),
-			tileColorBlack(5, 113, 55),
-			tileColorWhite(252, 244, 225),
+			currentSolverIndex(0),
+			size(DEFAULT_BOARD_SIZE),
+			currentSolution(nullptr),
 			boardPosition{ 0.0f, 0.0f },
 			boardSize{ 0.0f, 0.0f },
 			tileSize{ 0.0f, 0.0f },
-			heuristics(heuristicFunctions),
+			heuristics(heuristics),
+			solvers(solvers),
 			figuresPositions{},
-			figures{
-				new Figure("Bishop", "chess_green/black_bishop.png", "chess_green/white_bishop.png"),
-				new Figure("King", "chess_green/black_king.png", "chess_green/white_king.png"),
-				new Figure("Knight", "chess_green/black_knight.png", "chess_green/white_knight.png"),
-				new Figure("Pawn", "chess_green/black_pawn.png", "chess_green/white_pawn.png"),
-				new Figure("Queen", "chess_green/black_queen.png", "chess_green/white_queen.png"),
-				new Figure("Rook", "chess_green/black_rook.png", "chess_green/white_rook.png"),
-		}
-		{
-			sAppName = "8 Queens";
-		}
+			figures{},
+			window(nullptr)
+		{}
 
 		~ChessBoard()
 		{
 			for (auto& figure : figures)
 				delete figure;
+			delete window;
 		}
 
 	private:
-		void ChangeFigure()
-		{
-			currentChessFigureIndex = static_cast<uint8_t>(currentChessFigureIndex + 1) % static_cast<uint8_t>(figures.size());
-		}
-
-		void ChangeHeuristicFunction()
-		{
-			currentHeuristicIndex = static_cast<uint8_t>(currentHeuristicIndex + 1) % static_cast<uint8_t>(heuristics.size());
-		}
-
 		void DeselectFigure()
 		{
 			if (selectedFigureIndex == INVALID_FIGURE)
 				return;
 
-			int mouseX = GetMouseX();
-			int mouseY = GetMouseY();
+			int mouseX = window->GetMouseX();
+			int mouseY = window->GetMouseY();
 
 			int col = (mouseX - static_cast<int>(boardPosition.x)) / static_cast<int>(tileSize.x);
 			int row = (mouseY - static_cast<int>(boardPosition.y)) / static_cast<int>(tileSize.y);
@@ -133,12 +95,12 @@ namespace ntf {
 			olc::vf2d posOffset{ -1.0f, -1.0f };
 			olc::vf2d sizeOffset{ 1.0f, 1.0f };
 
-			DrawRect(boardPosition + posOffset, boardSize + sizeOffset, tileColorWhite);
+			window->DrawRect(boardPosition + posOffset, boardSize + sizeOffset, window->FgColor());
 
 			for (int i = 0; i < size; i++) {
 				for (int j = 0; j < size; j++) {
 					olc::Pixel fillColor{};
-					olc::Pixel borderColor(tileColorWhite);
+					olc::Pixel borderColor(window->FgColor());
 
 					if (selectedFigureIndex != INVALID_FIGURE && j != figuresPositions.at(selectedFigureIndex).x)
 						fillColor = olc::Pixel(3, 100, 48);
@@ -153,23 +115,28 @@ namespace ntf {
 		void DrawFigures()
 		{
 			Figure* figure = CurrentFigure();
-			olc::vi2d currentFigureSpriteSize{ figure->blackSprite->width, figure->blackSprite->height };
+
+			olc::vi2d currentFigureSpriteSize{
+				figure->blackSprites.at(window->currentThemeIndex)->width,
+				figure->blackSprites.at(window->currentThemeIndex)->height
+			};
 
 			for (int i = 0; i < size; i++) {
 				auto& position = figuresPositions[i];
 				olc::vf2d pos{};
 
 				if (i == selectedFigureIndex)
-					pos = GetMousePos() - currentFigureSpriteSize / 2;
+					pos = window->GetMousePos() - currentFigureSpriteSize / 2;
 				else
 					pos = GetTilePosition(position) + (tileSize - currentFigureSpriteSize) / 2.0f;
 
 				olc::Sprite* sprite = GetTileColorType(position.x, position.y) == TileColor::WHITE
-					? figure->blackSprite : figure->whiteSprite;
+					? figure->blackSprites.at(window->currentThemeIndex)
+					: figure->whiteSprites.at(window->currentThemeIndex);
 
-				SetPixelMode(olc::Pixel::MASK);
-				DrawSprite(pos, sprite);
-				SetPixelMode(olc::Pixel::NORMAL);
+				window->SetPixelMode(olc::Pixel::MASK);
+				window->DrawSprite(pos, sprite);
+				window->SetPixelMode(olc::Pixel::NORMAL);
 			}
 		}
 
@@ -188,7 +155,7 @@ namespace ntf {
 				olc::vf2d tilePos = GetTilePosition(position);
 				olc::vf2d fgPos = { tilePos.x + 3.0f, tilePos.y + (tileSize.y / 2.0f) + 3.0f };
 
-				DrawString(fgPos, std::to_string(value), GetTileColor(position, true));
+				window->DrawString(fgPos, std::to_string(value), GetTileColor(position, true));
 			};
 
 			auto& trgRes = results.at(figuresPositions[currentHeuristicResultFigureIndex].y);
@@ -197,46 +164,65 @@ namespace ntf {
 			olc::vf2d bgPos = { tilePos.x, tilePos.y + (tileSize.y / 2.0f) };
 			olc::vi2d bgSize = { static_cast<int>(tileSize.x), static_cast<int>(tileSize.y / 2) };
 
-			FillRect(bgPos, bgSize, GetTileColor(trgRes.position));
-			DrawRect(GetTilePosition(trgRes.position), tileSize, olc::BLUE);
+			window->FillRect(bgPos, bgSize, GetTileColor(trgRes.position));
+			window->DrawRect(GetTilePosition(trgRes.position), tileSize, olc::BLUE);
 
 			for (auto& result : results)
 				drawResult(result);
+		}
+
+		void DrawSolution()
+		{
+			if (currentSolution == nullptr)
+				return;
+
+			auto& [steps, duration, generatedStatesCount] = *currentSolution;
+
+			for (auto& [index, position] : steps) {
+				auto origPos = GetTilePositionI(figuresPositions.at(index));
+				auto trgPos = GetTilePositionI(position);
+
+				window->DrawLine(origPos, trgPos, olc::BLUE, DASHED_LINE_PATTERN);
+				window->FillCircle(trgPos, 2, olc::BLUE);
+			}
 		}
 
 		void DrawStrings(const std::vector<std::string>&& strings, BoardSide side = BoardSide::LEFT) {
 			for (size_t i = 0; i < strings.size(); i++) {
 				olc::vf2d position{};
 
-				if (side == BoardSide::LEFT)
-					position = { STRING_GAP, i * STRING_HEIGHT + boardPosition.y };
+				if (side == BoardSide::TOP)
+					position = { boardPosition.x, i * STRING_HEIGHT_F + BASE_GAP_F };
 
-				else if (side == BoardSide::TOP)
-					position = { STRING_GAP, i * STRING_HEIGHT + STRING_GAP };
+				else if (side == BoardSide::RIGHT)
+					position = { boardPosition.x + boardSize.x + BASE_GAP_F, boardPosition.y + i * STRING_HEIGHT_F };
 
 				else if (side == BoardSide::BOTTOM)
-					position = { STRING_GAP, i * STRING_HEIGHT + STRING_GAP + boardPosition.y + boardSize.y };
+					position = { boardPosition.x, boardPosition.y + boardSize.y + i * STRING_HEIGHT_F + BASE_GAP_F };
 
-				DrawString(position, strings.at(i), tileColorWhite);
+				else if (side == BoardSide::LEFT)
+					position = { BASE_GAP_F, boardPosition.y + i * STRING_HEIGHT_F };
+
+				window->DrawString(position, strings.at(i), window->FgColor());
 			}
 		}
 
 		void DrawTile(const uint32_t col, const uint32_t row, const olc::Pixel& fillColor, const olc::Pixel& borderColor)
 		{
-			FillRect(GetTilePosition(col, row), tileSize, fillColor);
-			DrawRect(GetTilePosition(col, row), tileSize, borderColor);
+			window->FillRect(GetTilePosition(col, row), tileSize, fillColor);
+			window->DrawRect(GetTilePosition(col, row), tileSize, borderColor);
 		}
 
 		void DrawTile(const olc::vi2d& position, const olc::Pixel& fillColor, const olc::Pixel& borderColor)
 		{
-			FillRect(GetTilePosition(position), tileSize, fillColor);
-			DrawRect(GetTilePosition(position), tileSize, borderColor);
+			window->FillRect(GetTilePosition(position), tileSize, fillColor);
+			window->DrawRect(GetTilePosition(position), tileSize, borderColor);
 		}
 
 		int GetMouseTargetFigureIndex()
 		{
-			int mouseX = GetMouseX();
-			int mouseY = GetMouseY();
+			int mouseX = window->GetMouseX();
+			int mouseY = window->GetMouseY();
 
 			int deltaX = mouseX - static_cast<int>(boardPosition.x);
 			int index = deltaX / static_cast<int>(tileSize.x);
@@ -246,7 +232,7 @@ namespace ntf {
 
 			auto position = GetTilePosition(figuresPositions.at(index));
 
-			if (MouseIsInRectBounds(position, tileSize, mouseX, mouseY))
+			if (Window::MouseIsInRectBounds(position, tileSize, mouseX, mouseY))
 				return index;
 
 			return INVALID_FIGURE;
@@ -255,8 +241,8 @@ namespace ntf {
 		olc::Pixel GetTileColor(const uint32_t col, const uint32_t row, bool inverse = false)
 		{
 			if (inverse)
-				return (col + row) % 2 == 0 ? tileColorBlack : tileColorWhite;
-			return (col + row) % 2 == 0 ? tileColorWhite : tileColorBlack;
+				return (col + row) % 2 == 0 ? window->BgColor() : window->FgColor();
+			return (col + row) % 2 == 0 ? window->FgColor() : window->BgColor();
 		}
 
 		olc::Pixel GetTileColor(const olc::vi2d& position, bool inverse = false)
@@ -267,8 +253,8 @@ namespace ntf {
 		olc::Pixel GetTileColor(const TileColor color, bool inverse = false)
 		{
 			if (inverse)
-				return color == TileColor::WHITE ? tileColorBlack : tileColorWhite;
-			return color == TileColor::WHITE ? tileColorWhite : tileColorBlack;
+				return color == TileColor::WHITE ? window->BgColor() : window->FgColor();
+			return color == TileColor::WHITE ? window->FgColor() : window->BgColor();
 		}
 
 		TileColor GetTileColorType(const uint32_t col, const uint32_t row)
@@ -283,7 +269,7 @@ namespace ntf {
 
 		olc::vf2d GetTilePosition(const uint32_t col, const uint32_t row)
 		{
-			return olc::vf2d{ static_cast<float>(col), static_cast<float>(row) } *tileSize + boardPosition;
+			return olc::vf2d{ static_cast<float>(col), static_cast<float>(row) } * tileSize + boardPosition;
 		}
 
 		olc::vf2d GetTilePosition(const olc::vi2d& position)
@@ -321,19 +307,9 @@ namespace ntf {
 			for (auto& index : threatIndices) {
 				auto threatPosition = GetTilePositionI(figuresPositions.at(index)) + tileSize / 2.0f;
 
-				FillCircle(threatPosition, 2, olc::RED);
-				DrawLine(trgPos, threatPosition, olc::RED, 0xF0F0F0F0);
+				window->FillCircle(threatPosition, 2, olc::RED);
+				window->DrawLine(trgPos, threatPosition, olc::RED, DASHED_LINE_PATTERN);
 			}
-		}
-
-		bool MouseIsInRectBounds(const olc::vf2d& rectPos, const olc::vi2d& rectSize, int mouseX, int mouseY)
-		{
-			return (
-				mouseX > rectPos.x &&
-				mouseX < rectPos.x + rectSize.x &&
-				mouseY > rectPos.y &&
-				mouseY < rectPos.y + rectSize.y
-				);
 		}
 
 		void SelectFigure()
@@ -353,10 +329,10 @@ namespace ntf {
 
 		void SetBoardMeasures()
 		{
-			float boardWidth = ScreenWidth() / 2.1f;
+			float boardWidth = window->ScreenWidth() / 2.2f + BASE_GAP_I;
 			float tileWidth = std::floorf(boardWidth / size);
 
-			boardPosition = { ScreenWidth() / 2.0f, (ScreenHeight() - boardWidth) / 2.0f };
+			boardPosition = { window->ScreenWidth() / 2.0f, (window->ScreenHeight() - boardWidth) / 2.0f };
 			boardSize = { tileWidth * size, tileWidth * size };
 			tileSize = { tileWidth, tileWidth };
 
@@ -376,84 +352,94 @@ namespace ntf {
 	public:
 		Figure* CurrentFigure()
 		{
-			return figures[currentChessFigureIndex];
+			if (currentFigureIndex == INVALID_FIGURE)
+				return nullptr;
+			return figures[currentFigureIndex];
 		}
 
-		Heuristic CurrentHeuristicFunction()
+		Heuristic CurrentHeuristic()
 		{
 			return heuristics.at(currentHeuristicIndex);
 		}
 
-		bool OnUserCreate() override
+		Solver CurrentSolver()
 		{
+			return solvers.at(currentSolverIndex);
+		}
+
+		bool OnCreate(Window *window) override
+		{
+			this->window = window;
+
+			figures = {
+				new Figure("Bishop", window->GetThemeFilesPaths("black_bishop.png"), window->GetThemeFilesPaths("white_bishop.png"), window),
+				new Figure("King", window->GetThemeFilesPaths("black_king.png"), window->GetThemeFilesPaths("white_king.png"), window),
+				new Figure("Knight", window->GetThemeFilesPaths("black_knight.png"), window->GetThemeFilesPaths("white_knight.png"), window),
+				new Figure("Pawn", window->GetThemeFilesPaths("black_pawn.png"), window->GetThemeFilesPaths("white_pawn.png"), window),
+				new Figure("Queen", window->GetThemeFilesPaths("black_queen.png"), window->GetThemeFilesPaths("white_queen.png"), window),
+				new Figure("Rook", window->GetThemeFilesPaths("black_rook.png"), window->GetThemeFilesPaths("white_rook.png"), window),
+			};
+
 			SetBoardMeasures();
 			RandomizePositions();
 			return true;
 		}
 
-		bool OnUserUpdate(float fElapsedTime) override
+		bool DrawSelf(float fElapsedTime) override
 		{
-			Clear(tileColorBlack);
-
 			DrawBoard();
 			DrawFigures();
 			DrawHeuristicResult();
+			
+			olc::vi2d infoBoxSize = window->DrawTextBox(
+				{ BASE_GAP_I, static_cast<int>(boardPosition.y) },
+				{
+					"Size: " + size,
+					"Theme: " + window->CurrentTheme().name,
+					"Figure: " + CurrentFigure()->name,
+					"Heuristic: " + CurrentHeuristic().name,
+					"Solution: " + CurrentSolver().name,
+				}
+			);
 
-			DrawStrings({
-				std::to_string(size) + " " + CurrentFigure()->name + "s puzzle",
-				}, BoardSide::TOP);
+			window->DrawAvailableScreenOptions({ BASE_GAP_I, infoBoxSize.y + BASE_GAP_I });
 
-			DrawStrings({
-				"Size: " + std::to_string(size),
-				"Figure: " + CurrentFigure()->name,
-				"Heuristic: " + CurrentHeuristicFunction().name,
-				"Search type: Taboo",
-				STRING_SEPARATOR,
-				"<C> - Change figure",
-				"<H> - Change heuristic",
-				"<R> - Randomize",
-				"<Ctrl> + \"+\" - Inc. size",
-				"<Ctrl> + \"-\" - Dec. size",
-				STRING_SEPARATOR,
-				"Hold <Shift> and hover",
-				"over figure to show its",
-				"threats.",
-				STRING_SEPARATOR,
-				"Click and drag figure",
-				"to change its position",
-				});
+			DrawStrings({ std::to_string(size) + " " + CurrentFigure()->name + "s puzzle" }, BoardSide::TOP);
 
-			if (GetKey(olc::CTRL).bHeld && GetKey(olc::MINUS).bPressed && size > MIN_BOARD_SIZE) {
+			if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::MINUS).bPressed && size > MIN_BOARD_SIZE) {
 				size--;
 				SetBoardMeasures();
 				RandomizePositions();
 			}
 
-			if (GetKey(olc::CTRL).bHeld && GetKey(olc::EQUALS).bPressed && size < MAX_BOARD_SIZE) {
+			if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::EQUALS).bPressed && size < MAX_BOARD_SIZE) {
 				size++;
 				SetBoardMeasures();
 				RandomizePositions();
 			}
 
-			if (GetKey(olc::SHIFT).bHeld && MouseIsInRectBounds(boardPosition, boardSize, GetMouseX(), GetMouseY()))
+			if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
 				HighlightThreats();
 
-			if (GetKey(olc::C).bPressed)
-				ChangeFigure();
+			if (window->GetKey(olc::C).bPressed)
+				currentFigureIndex = Window::GetNextArrayIndex(currentFigureIndex, figures.size());
 
-			if (GetKey(olc::H).bPressed)
-				ChangeHeuristicFunction();
+			if (window->GetKey(olc::Y).bPressed)
+				currentHeuristicIndex = Window::GetNextArrayIndex(currentHeuristicIndex, heuristics.size());
 
-			if (GetKey(olc::R).bPressed)
+			if (window->GetKey(olc::R).bPressed)
 				RandomizePositions();
 
-			if (selectedFigureIndex == INVALID_FIGURE && GetMouse(0).bHeld)
+			if (window->GetKey(olc::S).bPressed)
+				currentSolverIndex = Window::GetNextArrayIndex(currentSolverIndex, solvers.size());
+
+			if (selectedFigureIndex == INVALID_FIGURE && window->GetMouse(0).bHeld)
 				SelectFigure();
 
-			if (selectedFigureIndex != INVALID_FIGURE && !GetMouse(0).bHeld)
+			if (selectedFigureIndex != INVALID_FIGURE && !window->GetMouse(0).bHeld)
 				DeselectFigure();
 
-			if (GetMouse(1).bPressed)
+			if (window->GetMouse(1).bPressed)
 				SetCurrentHeuristicResultFigureIndex();
 
 			return true;

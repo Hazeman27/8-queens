@@ -150,9 +150,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ChessBoard.h" />
+    <ClInclude Include="Figure.h" />
+    <ClInclude Include="HelpScreen.h" />
     <ClInclude Include="Heuristic.h" />
+    <ClInclude Include="MenuScreen.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
     <ClInclude Include="Solver.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

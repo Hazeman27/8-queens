@@ -17,7 +17,4 @@ namespace ntf {
 		std::string name;
 		HeuristicFunction function;
 	};
-
-	std::vector<HeuristicValue> LocalThreatsHeuristic(uint32_t trgIndex, const std::vector<olc::vi2d>& positions);
-	std::vector<HeuristicValue> GlobalThreatsHeuristic(uint32_t trgIndex, const std::vector<olc::vi2d>& positions);
 }
