@@ -21,6 +21,12 @@
     <ClInclude Include="ChessBoard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Heuristic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Solver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
