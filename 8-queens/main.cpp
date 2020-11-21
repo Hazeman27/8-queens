@@ -70,7 +70,7 @@ int main()
 {
 	ntf::Screen* board = new ntf::ChessBoard(
 		{{ "Local Threats", LocalThreatsHeuristic }, { "Global Threats", GlobalThreatsHeuristic }},
-		{{ "Beam Search", BeamSearchSolver }, { "Taboo Search", TabooSearchSolver }}
+		{{ "Beam Search", BeamSearchSolver, { true, "K param", 100, 5, 8, }}, { "Taboo Search", TabooSearchSolver }}
 	);
 
 	ntf::Screen* help = new ntf::HelpScreen();
@@ -84,7 +84,7 @@ int main()
 
 	ntf::Window window({ board, help, menu }, themes, 0);
 
-	if (window.Construct(450, 350, 2, 2))
+	if (window.Construct(460, 350, 2, 2))
 		window.Start();
 
 	return 0;
