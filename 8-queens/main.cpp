@@ -5,40 +5,45 @@
 #include "Solver.h"
 
 
-std::vector<ntf::HeuristicValue> LocalThreatsHeuristic(uint32_t trgIndex, const std::vector<olc::vi2d>& positions)
+struct LocalThreats : public ntf::Heuristic
 {
-	std::vector<ntf::HeuristicValue> values{};
-	olc::vi2d targetPos = positions[trgIndex];
+	LocalThreats() : Heuristic("Local Threats") {}
 
-	auto getThreatsAtPos = [&](olc::vi2d position) {
+	ntf::HeuristicValue evaluatePosition(const olc::vi2d& position) override
+	{
 		return ntf::HeuristicValue{
 			position,
-			static_cast<uint32_t>(ntf::ChessBoard::GetThreatsIndicesForPos(position, positions).size())
+			static_cast<uint32_t>(ntf::ChessBoard::GetThreatsIndicesForPos(position, *figuresPositions).size())
 		};
 	};
 
-	for (size_t i = 0; i < positions.size(); i++)
-		values.push_back(getThreatsAtPos({ targetPos.x, static_cast<int>(i) }));
+	std::vector<ntf::HeuristicValue> evaluateColumn(uint32_t targetCol) override
+	{
+		std::vector<ntf::HeuristicValue> values{};
+		olc::vi2d targetPos = figuresPositions->at(targetCol);
 
-	return values;
-}
+		for (size_t i = 0; i < figuresPositions->size(); i++)
+			values.push_back(evaluatePosition({ targetPos.x, static_cast<int>(i) }));
 
-std::vector<ntf::HeuristicValue> GlobalThreatsHeuristic(uint32_t trgIndex, const std::vector<olc::vi2d>& positions)
+		return values;
+	}
+};
+
+struct GlobalThreats : public ntf::Heuristic
 {
-	std::vector<ntf::HeuristicValue> values{};
+	GlobalThreats() : Heuristic("Global Threats") {}
 
-	size_t boardSize = positions.size();
-	olc::vi2d trgPos = positions[trgIndex];
-
-	auto getThreatsAtPos = [&](olc::vi2d position) {
+	ntf::HeuristicValue evaluatePosition(const olc::vi2d& position) override
+	{
 		uint32_t threatsSum = 0;
+		size_t boardSize = figuresPositions->size();
 
 		for (size_t i = 0; i < boardSize; i++) {
 			uint32_t threats = 0;
-			olc::vi2d posA = i == trgIndex ? position : positions[i];
+			olc::vi2d posA = i == position.x ? position : figuresPositions->at(i);
 
 			for (size_t j = i + 1; j < boardSize; j++) {
-				olc::vi2d posB = j == trgIndex ? position : positions[j];
+				olc::vi2d posB = j == position.x ? position : figuresPositions->at(j);
 
 				if (ntf::ChessBoard::FigureAtPosIsThreat(posA, posB))
 					threats++;
@@ -50,27 +55,65 @@ std::vector<ntf::HeuristicValue> GlobalThreatsHeuristic(uint32_t trgIndex, const
 		return ntf::HeuristicValue{ position, threatsSum };
 	};
 
-	for (size_t i = 0; i < boardSize; i++)
-		values.push_back(getThreatsAtPos({ trgPos.x, static_cast<int>(i) }));
+	std::vector<ntf::HeuristicValue> evaluateColumn(uint32_t targetCol) override
+	{
+		std::vector<ntf::HeuristicValue> values{};
 
-	return values;
-}
+		size_t boardSize = figuresPositions->size();
+		olc::vi2d trgPos = figuresPositions->at(targetCol);
 
-ntf::Solution BeamSearchSolver(const olc::vi2d& positions, const ntf::HeuristicFunction heuristicFunction)
-{
+		for (size_t i = 0; i < boardSize; i++)
+			values.push_back(evaluatePosition({ trgPos.x, static_cast<int>(i) }));
+
+		return values;
+	}
+};
+
+ntf::Solution BeamSearch(
+	const std::vector<olc::vi2d>& positions,
+	const ntf::SolverParam& param,
+	ntf::Heuristic* heuristic
+) {
+	using State = std::pair<std::vector<olc::vi2d>, uint32_t>;
+	using Clock = std::chrono::system_clock;
+	using Distribution = std::uniform_int_distribution<size_t>;
+
+	std::default_random_engine randomEngine;
+	auto seedEngine = [&]() { randomEngine.seed(static_cast<uint32_t>(Clock::now().time_since_epoch().count())); };
+
+	int k = param.value;
+	size_t size = positions.size();
+
+	std::vector<State> states{};
+
+	for (size_t i = 0; i < size; i++) {
+		uint32_t heuristicValue = heuristic->evaluatePosition(positions[i]).value;
+		states.push_back({ positions, heuristicValue });
+	}
+
+	for (int i = 0; i < k; i++) {
+		seedEngine();
+	}
+
 	return {};
 }
 
-ntf::Solution TabooSearchSolver(const olc::vi2d& positions, const ntf::HeuristicFunction heuristicFunction)
-{
+ntf::Solution TabooSearch(
+	const std::vector<olc::vi2d>& positions,
+	const ntf::SolverParam& param,
+	ntf::Heuristic* heuristic
+) {
 	return {};
 }
 
 int main()
 {
+	ntf::Heuristic* localThreats(new LocalThreats);
+	ntf::Heuristic* globalThreats(new GlobalThreats);
+
 	ntf::Screen* board = new ntf::ChessBoard(
-		{{ "Local Threats", LocalThreatsHeuristic }, { "Global Threats", GlobalThreatsHeuristic }},
-		{{ "Beam Search", BeamSearchSolver, { true, "K param", 100, 5, 8, }}, { "Taboo Search", TabooSearchSolver }}
+		{ localThreats, globalThreats },
+		{{ "Beam Search", BeamSearch, { true, "K param", 100, 3, 8, }}, { "Taboo Search", TabooSearch }}
 	);
 
 	ntf::Screen* help = new ntf::HelpScreen();

@@ -11,10 +11,14 @@ namespace ntf {
         }
     };
 
-    using HeuristicFunction = std::vector<HeuristicValue>(*)(uint32_t, const std::vector<olc::vi2d>&);
-
     struct Heuristic {
         std::string name;
-        HeuristicFunction function;
+        std::vector<olc::vi2d>* figuresPositions;
+
+        Heuristic(const std::string& name) : name(name), figuresPositions(nullptr) {}
+        ~Heuristic() { delete figuresPositions; }
+
+        virtual HeuristicValue evaluatePosition(const olc::vi2d& position) = 0;
+        virtual std::vector<HeuristicValue> evaluateColumn(uint32_t targetCol) = 0;
     };
 }

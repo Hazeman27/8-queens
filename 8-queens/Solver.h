@@ -10,12 +10,10 @@ namespace ntf {
     };
 
     struct Solution {
-        std::vector<SolutionStep> steps;
+        std::vector<SolutionStep> steps = {};
         TimePoint duration;
         uint32_t generatedStatesCount;
     };
-
-    using SolverFunction = Solution(*)(const olc::vi2d&, const HeuristicFunction);
 
     struct SolverParam {
         bool isUsed = false;
@@ -24,6 +22,8 @@ namespace ntf {
         int32_t min = INT32_MIN;
         int32_t value = 0;
     };
+
+    using SolverFunction = Solution(*)(const std::vector<olc::vi2d>&, const SolverParam&, Heuristic*);
 
     struct Solver {
         std::string name;

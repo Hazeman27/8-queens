@@ -31,13 +31,13 @@ namespace ntf {
         uint8_t currentSolverIndex;
         uint8_t size;
 
-        Solution* currentSolution;
+        Solution currentSolution;
 
         olc::vf2d boardPosition;
         olc::vf2d boardSize;
         olc::vf2d tileSize;
 
-        std::vector<Heuristic> heuristics;
+        std::vector<Heuristic*> heuristics;
         std::vector<Solver> solvers;
 
         std::vector<olc::vi2d> figuresPositions;
@@ -47,7 +47,7 @@ namespace ntf {
         std::default_random_engine randomGenerator;
 
     public:
-        ChessBoard(const std::vector<Heuristic>& heuristics, const std::vector<Solver>& solvers) :
+        ChessBoard(const std::vector<Heuristic*> heuristics, const std::vector<Solver>& solvers) :
             Screen("Puzzle", olc::P, "P"),
             globalHeuristicModeToggled(false),
             currentHeuristicResultFigureIndex(INVALID_FIGURE),
@@ -56,7 +56,7 @@ namespace ntf {
             currentHeuristicIndex(0),
             currentSolverIndex(0),
             size(DEFAULT_BOARD_SIZE),
-            currentSolution(nullptr),
+            currentSolution{},
             boardPosition{ 0.0f, 0.0f },
             boardSize{ 0.0f, 0.0f },
             tileSize{ 0.0f, 0.0f },
@@ -65,12 +65,19 @@ namespace ntf {
             figuresPositions{},
             figures{},
             window(nullptr)
-        {}
+        {
+            for (auto& heuristic : heuristics)
+                heuristic->figuresPositions = &figuresPositions;
+        }
 
         ~ChessBoard()
         {
             for (auto& figure : figures)
                 delete figure;
+
+            for (auto& heuristic : heuristics)
+                delete heuristic;
+
             delete window;
         }
 
@@ -155,9 +162,9 @@ namespace ntf {
                 return;
 
             auto drawHeuristicResult = [&](uint32_t figureIndex) {
-                auto& [_, heuristicFunction] = heuristics.at(currentHeuristicIndex);
+                Heuristic* heuristic = heuristics.at(currentHeuristicIndex);
 
-                auto results = heuristicFunction(figureIndex, figuresPositions);
+                auto results = heuristic->evaluateColumn(figureIndex);
 
                 auto drawResult = [&](HeuristicValue result) {
                     auto& [position, value] = result;
@@ -175,7 +182,7 @@ namespace ntf {
                 olc::vi2d bgSize = { static_cast<int>(tileSize.x), static_cast<int>(tileSize.y / 2) };
 
                 window->FillRect(bgPos, bgSize, GetTileColor(trgRes.position));
-                window->DrawRect(GetTilePosition(trgRes.position), tileSize, olc::BLUE);
+                window->DrawRect(GetTilePosition(trgRes.position), tileSize, olc::RED);
 
                 for (auto& result : results)
                     drawResult(result);
@@ -193,10 +200,10 @@ namespace ntf {
 
         void DrawSolution()
         {
-            if (currentSolution == nullptr)
+            if (currentSolution.steps.size() == 0)
                 return;
 
-            auto& [steps, duration, generatedStatesCount] = *currentSolution;
+            auto& [steps, duration, generatedStatesCount] = currentSolution;
 
             for (auto& [index, position] : steps) {
                 auto origPos = GetTilePositionI(figuresPositions.at(index));
@@ -369,7 +376,9 @@ namespace ntf {
 
         void RandomizePositions()
         {
-            std::uniform_int_distribution<int> uniformDistribution(0, size - 1);
+            randomGenerator.seed(static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+            std::uniform_int_distribution uniformDistribution(0, size - 1);
             figuresPositions.clear();
 
             for (int i = 0; i < size; i++)
@@ -384,7 +393,7 @@ namespace ntf {
             return figures[currentFigureIndex];
         }
 
-        Heuristic& CurrentHeuristic()
+        Heuristic* CurrentHeuristic()
         {
             return heuristics.at(currentHeuristicIndex);
         }
@@ -424,6 +433,7 @@ namespace ntf {
             DrawBoard();
             DrawFigures();
             DrawHeuristicResult();
+            DrawSolution();
             
             BoundingRect info = window->DrawTextBox(
                 { BASE_GAP_I, static_cast<int>(boardPosition.y) },
@@ -431,7 +441,7 @@ namespace ntf {
                     "Size: " + std::to_string(size),
                     "Theme: " + window->CurrentTheme().name,
                     "Figure: " + CurrentFigure()->name,
-                    "Heuristic: " + CurrentHeuristic().name,
+                    "Heuristic: " + CurrentHeuristic()->name,
                     "Global heuristic mode: " + std::to_string(globalHeuristicModeToggled),
                     "Solution: " + CurrentSolver().name,
                     CurrentSolverParamString(),
@@ -459,6 +469,9 @@ namespace ntf {
 
             if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::K).bPressed)
                 IncrementCurrentSolverParam();
+
+            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::S).bPressed)
+                currentSolution = CurrentSolver().function(figuresPositions, CurrentSolver().param, CurrentHeuristic());
 
             if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
                 HighlightThreats();
