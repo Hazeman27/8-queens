@@ -7,6 +7,7 @@
 
 
 namespace ntf {
+    constexpr uint32_t BULK_TESTS_AMOUNT = 100;
     constexpr int16_t INVALID_FIGURE = -1;
 
     constexpr uint8_t DEFAULT_BOARD_SIZE = 8U;
@@ -19,9 +20,17 @@ namespace ntf {
     enum class TileColor { BLACK, WHITE };
     enum class BoardSide { TOP, RIGHT, BOTTOM, LEFT };
 
+    struct BulkTestInfo {
+        uint64_t totalDuration;
+        uint64_t totalStatesGenerated;
+        uint32_t currentIteration;
+        uint32_t failedIterations;
+    };
+
     class ChessBoard : public Screen
     {
     private:
+        bool runBulkTests;
         bool globalHeuristicModeToggled;
         int16_t currentHeuristicResultFigureIndex;
         int16_t selectedFigureIndex;
@@ -43,6 +52,7 @@ namespace ntf {
         std::array<std::shared_ptr<Figure>, FIGURES_COUNT> figures;
 
         std::default_random_engine randomGenerator;
+        BulkTestInfo bulkTestResults;
 
     public:
         ChessBoard(
@@ -50,6 +60,7 @@ namespace ntf {
             const std::vector<std::shared_ptr<Solver>> solvers
         ) :
             Screen("Puzzle", olc::P, "P"),
+            runBulkTests(false),
             globalHeuristicModeToggled(false),
             currentHeuristicResultFigureIndex(INVALID_FIGURE),
             selectedFigureIndex(INVALID_FIGURE),
@@ -64,7 +75,8 @@ namespace ntf {
             heuristics(heuristics),
             solvers(solvers),
             figuresPositions{},
-            figures{}
+            figures{},
+            bulkTestResults{ 0, 0, 0 }
         {}
 
     private:
@@ -112,6 +124,21 @@ namespace ntf {
                     DrawTile(j, i, fillColor, borderColor);
                 }
             }
+        }
+
+        void DrawBulkTestResults()
+        {
+            auto [duration, statesCount, iteration, failedIterations] = bulkTestResults;
+
+            if (duration == 0 && statesCount == 0 && iteration == 0)
+                return;
+
+            DrawStrings({
+                "Bulk test #" + std::to_string(iteration),
+                "Failed iterations #" + std::to_string(failedIterations),
+                "Average duration: " + std::to_string(duration / iteration) + "ms",
+                "Average states count: " + std::to_string(statesCount / iteration),
+            }, BoardSide::BOTTOM);
         }
 
         void DrawFigures()
@@ -378,6 +405,7 @@ namespace ntf {
             currentHeuristicResultFigureIndex = INVALID_FIGURE;
             selectedFigureIndex = INVALID_FIGURE;
             currentSolution = {};
+            bulkTestResults = { 0, 0, 0 };
         }
 
         void RandomizePositions()
@@ -431,6 +459,29 @@ namespace ntf {
             DrawFigures();
             DrawHeuristicResult();
             DrawSolution();
+            DrawBulkTestResults();
+
+            if (runBulkTests) {
+
+                if (bulkTestResults.currentIteration == BULK_TESTS_AMOUNT)
+                    runBulkTests = false;
+                
+                else {
+                    auto solution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
+
+                    if (solution.figuresPositions.size() == 0 && solution.duration.count() > 0) {
+                        bulkTestResults.failedIterations++;
+                    }
+                    
+                    else {
+                        bulkTestResults.totalDuration += solution.duration.count();
+                        bulkTestResults.totalStatesGenerated += solution.generatedStatesCount;
+
+                        RandomizePositions();
+                        bulkTestResults.currentIteration++;
+                    }
+                }
+            }
 
             BoundingRect info = window->DrawTextBox(
                 { BASE_GAP_I, static_cast<int>(boardPosition.y) },
@@ -443,7 +494,7 @@ namespace ntf {
                     "Solution: " + CurrentSolver()->name,
                     CurrentSolverParamString(),
                 }
-                );
+            );
 
             window->DrawAvailableScreenOptions(Window::PutBelow(info));
 
@@ -470,6 +521,12 @@ namespace ntf {
             else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::R).bPressed)
                 ResetCurrentSolverParam();
 
+            /* FOR BULK TESTS */
+            /*else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::B).bPressed) {
+                runBulkTests = !runBulkTests;
+                bulkTestResults = { 0, 0, 0 };
+            }*/
+
             else if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
                 HighlightThreats();
 
@@ -488,8 +545,10 @@ namespace ntf {
             else if (window->GetKey(olc::R).bPressed)
                 RandomizePositions();
 
-            else if (window->GetKey(olc::S).bPressed)
+            else if (window->GetKey(olc::S).bPressed) {
+                DrawStrings({ "Solving..." }, BoardSide::BOTTOM);
                 currentSolution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
+            }
 
             else if (window->GetKey(olc::RIGHT).bPressed)
                 currentSolverIndex = Window::GetNextArrayIndex(currentSolverIndex, solvers.size());

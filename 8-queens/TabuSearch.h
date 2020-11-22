@@ -18,58 +18,63 @@ namespace ntf {
 			int generatedStatesCount = 0;
 
 			int tabuListMaxSize = param.value;
+			uint64_t popDepth = 1;
 
-			SearchState bestFit{
+			std::shared_ptr<SearchState> bestFit(new SearchState{
 				figuresPositions,
 				heuristic->EvaluateBoard(figuresPositions)
-			};
+			});
 
-			std::unordered_map<std::string, bool> tabuList{ {bestFit.Serialize(), true} };
+			std::unordered_map<std::string, bool> tabuList{ {bestFit->Serialize(), true} };
 			SearchStatesQueue fitnessQueue;
 
-			fitnessQueue.push(bestFit);
+			fitnessQueue.push(*bestFit);
 
-			while (bestFit.heuristicValue != 0 && !fitnessQueue.empty()) {
+			while (bestFit->heuristicValue != 0 && !fitnessQueue.empty()) {
 
-				std::vector<SearchState> possibleStates;
+				for (auto& position : bestFit->figuresPositions) {
 
-				for (auto& position : bestFit.figuresPositions) {
-					auto results = heuristic->EvaluateColumn(position, bestFit.figuresPositions);
+					for (auto& result : heuristic->EvaluateColumn(position, bestFit->figuresPositions)) {
 
-					for (auto& result : results) {
-						auto state = GenerateState(bestFit.figuresPositions, result.position, heuristic);
+						auto currentState = std::move(GenerateState(bestFit->figuresPositions, result.position, heuristic));
 						generatedStatesCount++;
 
-						if (tabuList.find(state.Serialize()) != tabuList.end())
+						if (tabuList.find(currentState.Serialize()) != tabuList.end())
 							continue;
 
-						fitnessQueue.push(state);
+						fitnessQueue.push(currentState);
 					}
 				}
 
 				SearchState localBestFit = fitnessQueue.top();
 				fitnessQueue.pop();
 
-				if (localBestFit < bestFit)
-					bestFit = localBestFit;
+				if (localBestFit < *bestFit)
+					*bestFit = localBestFit;
 
 				else {
-					SearchState secondBestFit = fitnessQueue.top();
-					fitnessQueue.pop();
+					SearchState localSecondBestFit;
 					
-					bestFit = secondBestFit;
+					for (uint64_t i = 0; i < popDepth && !fitnessQueue.empty(); i++) {
+						localSecondBestFit = fitnessQueue.top();
+						fitnessQueue.pop();
+					}
+
+					*bestFit = localSecondBestFit;
 					tabuList.insert({ localBestFit.Serialize(), true });
+
+					popDepth++;
 				}
 				
 				if (tabuList.size() > tabuListMaxSize)
 					tabuList.erase(tabuList.begin());
 			}
 
-			if (bestFit.heuristicValue != 0)
+			if (bestFit->heuristicValue != 0)
 				return { {}, TakeTimeStamp(startTime), generatedStatesCount };
-
+			
 			return {
-				bestFit.figuresPositions,
+				bestFit->figuresPositions,
 				TakeTimeStamp(startTime),
 				generatedStatesCount,
 			};

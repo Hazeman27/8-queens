@@ -34,6 +34,8 @@ namespace ntf {
 			std::uniform_int_distribution<int> distribution(0, static_cast<int>(figuresPositions.size() - 1));
 
 			SearchStatesQueue queue;
+			
+			std::shared_ptr<SearchState> currentState(new SearchState());
 			std::unordered_map<std::string, bool> visitedStates{};
 
 			for (int i = 0; i < beamWidth; i++) {
@@ -41,19 +43,19 @@ namespace ntf {
 				int randomCol = distribution(randomEngine);
 				int randomRow = distribution(randomEngine);
 
-				auto state = GenerateState(figuresPositions, { randomCol, randomRow }, heuristic);
+				*currentState = std::move(GenerateState(figuresPositions, { randomCol, randomRow }, heuristic));
 				generatedStatesCount++;
 
-				if (state.heuristicValue == 0) {
+				if (currentState->heuristicValue == 0) {
 					return {
-						state.figuresPositions,
+						currentState->figuresPositions,
 						TakeTimeStamp(startTime),
 						generatedStatesCount,
 					};
 				}
 
-				queue.push(state);
-				visitedStates.insert({ state.Serialize(), true });
+				queue.push(std::move(*currentState));
+				visitedStates.insert({ currentState->Serialize(), true });
 			}
 
 			while (!queue.empty()) {
@@ -61,23 +63,21 @@ namespace ntf {
 				SearchStatesQueue subQueue;
 
 				while (!queue.empty()) {
-					auto [figuresPositions, stateHeuristicValue] = queue.top();
+					*currentState = queue.top();
 					queue.pop();
 
-					if (stateHeuristicValue == 0) {
+					if (currentState->heuristicValue == 0) {
 						return {
-							figuresPositions,
+							currentState->figuresPositions,
 							TakeTimeStamp(startTime),
 							generatedStatesCount,
 						};
 					}
 
-					for (auto& position : figuresPositions) {
+					for (auto& position : currentState->figuresPositions) {
 
-						auto results = heuristic->EvaluateColumn(position, figuresPositions);
-
-						for (auto& result : results) {
-							subQueue.push(GenerateState(figuresPositions, result.position, heuristic));
+						for (auto& result : heuristic->EvaluateColumn(position, currentState->figuresPositions)) {
+							subQueue.push(std::move(GenerateState(currentState->figuresPositions, result.position, heuristic)));
 							generatedStatesCount++;
 						}
 					}
@@ -85,15 +85,15 @@ namespace ntf {
 
 				for (int i = 0; i < beamWidth && !subQueue.empty(); i++) {
 
-					auto state = subQueue.top();
+					*currentState = subQueue.top();
 					subQueue.pop();
 
-					std::string stateKey = state.Serialize();
+					std::string stateKey = std::move(currentState->Serialize());
 
 					if (visitedStates.find(stateKey) != visitedStates.end())
 						continue;
 
-					queue.push(state);
+					queue.push(std::move(*currentState));
 					visitedStates.insert({ stateKey, true });
 				}
 			}
