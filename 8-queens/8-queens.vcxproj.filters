@@ -13,43 +13,52 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\Screens">
+      <UniqueIdentifier>{63da4fe6-de25-4d36-9d25-3c699aceca7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Heuristics">
+      <UniqueIdentifier>{e1ea545a-5db7-4b18-be21-fd7a9dd384b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Solvers">
+      <UniqueIdentifier>{28c55dd9-0af4-4a0e-8898-17faef1ac3db}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="olcPixelGameEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ChessBoard.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Heuristic.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Solver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Figure.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BeamSearch.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="MenuScreen.h">
+      <Filter>Header Files\Screens</Filter>
     </ClInclude>
-    <ClInclude Include="LocalThreats.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GlobalThreats.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="ChessBoard.h">
+      <Filter>Header Files\Screens</Filter>
     </ClInclude>
     <ClInclude Include="HelpScreen.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Screens</Filter>
     </ClInclude>
-    <ClInclude Include="MenuScreen.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="GlobalThreats.h">
+      <Filter>Header Files\Heuristics</Filter>
+    </ClInclude>
+    <ClInclude Include="LocalThreats.h">
+      <Filter>Header Files\Heuristics</Filter>
+    </ClInclude>
+    <ClInclude Include="BeamSearch.h">
+      <Filter>Header Files\Solvers</Filter>
     </ClInclude>
     <ClInclude Include="TabuSearch.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Solvers</Filter>
+    </ClInclude>
+    <ClInclude Include="Solver.h">
+      <Filter>Header Files\Solvers</Filter>
+    </ClInclude>
+    <ClInclude Include="Heuristic.h">
+      <Filter>Header Files\Heuristics</Filter>
+    </ClInclude>
+    <ClInclude Include="Figure.h">
+      <Filter>Header Files\Screens</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
