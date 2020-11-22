@@ -55,7 +55,7 @@ namespace ntf {
             currentHeuristicIndex(0),
             currentSolverIndex(0),
             size(DEFAULT_BOARD_SIZE),
-            currentSolution{},
+            currentSolution({}),
             boardPosition{ 0.0f, 0.0f },
             boardSize{ 0.0f, 0.0f },
             tileSize{ 0.0f, 0.0f },
@@ -86,7 +86,7 @@ namespace ntf {
     private:
         void DecrementCurrentSolverParam()
         {
-            if (CurrentSolver()->param.value == CurrentSolver()->param.min)
+            if (!CurrentSolver()->param.isUsed || CurrentSolver()->param.value == CurrentSolver()->param.min)
                 return;
             CurrentSolver()->param.value--;
         }
@@ -166,7 +166,7 @@ namespace ntf {
             auto drawHeuristicResult = [&](uint32_t figureIndex) {
                 Heuristic* heuristic = heuristics.at(currentHeuristicIndex);
 
-                auto results = heuristic->evaluateColumn(figuresPositions[figureIndex], figuresPositions);
+                auto results = heuristic->EvaluateColumn(figuresPositions[figureIndex], figuresPositions);
 
                 auto drawResult = [&](HeuristicValue result) {
                     auto& [position, value] = result;
@@ -240,7 +240,7 @@ namespace ntf {
                     position = { boardPosition.x + boardSize.x + BASE_GAP_F, boardPosition.y + i * STRING_HEIGHT_F };
 
                 else if (side == BoardSide::BOTTOM)
-                    position = { boardPosition.x, boardPosition.y + boardSize.y + i * STRING_HEIGHT_F + BASE_GAP_F };
+                    position = { boardPosition.x, boardPosition.y + boardSize.y + i * STRING_HEIGHT_F + BASE_GAP_F * 2 };
 
                 else if (side == BoardSide::LEFT)
                     position = { BASE_GAP_F, boardPosition.y + i * STRING_HEIGHT_F };
@@ -356,7 +356,7 @@ namespace ntf {
 
         void IncrementCurrentSolverParam()
         {
-            if (CurrentSolver()->param.value == CurrentSolver()->param.max)
+            if (!CurrentSolver()->param.isUsed || CurrentSolver()->param.value == CurrentSolver()->param.max)
                 return;
             CurrentSolver()->param.value++;
         }
@@ -401,6 +401,13 @@ namespace ntf {
                 figuresPositions.push_back({ i, uniformDistribution(randomGenerator) });
         }
 
+        void ResetCurrentSolverParam()
+        {
+            if (!CurrentSolver()->param.isUsed)
+                return;
+            CurrentSolver()->param.value = CurrentSolver()->param.defaultValue;
+        }
+
     public:
         Figure* CurrentFigure()
         {
@@ -426,6 +433,84 @@ namespace ntf {
             return CurrentSolver()->param.name + ": " + std::to_string(CurrentSolver()->param.value);
         }
 
+        bool DrawSelf(float fElapsedTime) override
+        {
+            DrawBoard();
+            DrawFigures();
+            DrawHeuristicResult();
+            DrawSolution();
+
+            BoundingRect info = window->DrawTextBox(
+                { BASE_GAP_I, static_cast<int>(boardPosition.y) },
+                {
+                    "Size: " + std::to_string(size),
+                    "Theme: " + window->CurrentTheme().name,
+                    "Figure: " + CurrentFigure()->name,
+                    "Heuristic: " + CurrentHeuristic()->name,
+                    "Global heuristic mode: " + std::to_string(globalHeuristicModeToggled),
+                    "Solution: " + CurrentSolver()->name,
+                    CurrentSolverParamString(),
+                }
+                );
+
+            window->DrawAvailableScreenOptions(Window::PutBelow(info));
+
+            DrawStrings({ std::to_string(size) + " " + CurrentFigure()->name + "s puzzle" }, BoardSide::TOP);
+
+            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::MINUS).bPressed && size > MIN_BOARD_SIZE) {
+                size--;
+                SetBoardMeasures();
+                RandomizePositions();
+            }
+
+            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::EQUALS).bPressed && size < MAX_BOARD_SIZE) {
+                size++;
+                SetBoardMeasures();
+                RandomizePositions();
+            }
+
+            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::J).bPressed)
+                DecrementCurrentSolverParam();
+
+            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::K).bPressed)
+                IncrementCurrentSolverParam();
+
+            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::S).bPressed)
+                currentSolution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
+
+            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::R).bPressed)
+                ResetCurrentSolverParam();
+
+            else if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
+                HighlightThreats();
+
+            else if (window->GetKey(olc::C).bPressed)
+                currentFigureIndex = Window::GetNextArrayIndex(currentFigureIndex, figures.size());
+
+            else if (window->GetKey(olc::G).bPressed)
+                globalHeuristicModeToggled = !globalHeuristicModeToggled;
+
+            else if (window->GetKey(olc::Y).bPressed)
+                currentHeuristicIndex = Window::GetNextArrayIndex(currentHeuristicIndex, heuristics.size());
+
+            else if (window->GetKey(olc::R).bPressed)
+                RandomizePositions();
+
+            else if (window->GetKey(olc::S).bPressed)
+                currentSolverIndex = Window::GetNextArrayIndex(currentSolverIndex, solvers.size());
+
+            if (selectedFigureIndex == INVALID_FIGURE && window->GetMouse(0).bHeld)
+                SelectFigure();
+
+            if (selectedFigureIndex != INVALID_FIGURE && !window->GetMouse(0).bHeld)
+                DeselectFigure();
+
+            if (window->GetMouse(1).bPressed)
+                SetCurrentHeuristicResultFigureIndex();
+
+            return true;
+        }
+
         bool OnCreate(Window *window) override
         {
             this->window = window;
@@ -441,81 +526,6 @@ namespace ntf {
 
             SetBoardMeasures();
             RandomizePositions();
-            return true;
-        }
-
-        bool DrawSelf(float fElapsedTime) override
-        {
-            DrawBoard();
-            DrawFigures();
-            DrawHeuristicResult();
-            DrawSolution();
-            
-            BoundingRect info = window->DrawTextBox(
-                { BASE_GAP_I, static_cast<int>(boardPosition.y) },
-                {
-                    "Size: " + std::to_string(size),
-                    "Theme: " + window->CurrentTheme().name,
-                    "Figure: " + CurrentFigure()->name,
-                    "Heuristic: " + CurrentHeuristic()->name,
-                    "Global heuristic mode: " + std::to_string(globalHeuristicModeToggled),
-                    "Solution: " + CurrentSolver()->name,
-                    CurrentSolverParamString(),
-                }
-            );
-
-            window->DrawAvailableScreenOptions(Window::PutBelow(info));
-
-            DrawStrings({ std::to_string(size) + " " + CurrentFigure()->name + "s puzzle" }, BoardSide::TOP);
-
-            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::MINUS).bPressed && size > MIN_BOARD_SIZE) {
-                size--;
-                SetBoardMeasures();
-                RandomizePositions();
-            }
-
-            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::EQUALS).bPressed && size < MAX_BOARD_SIZE) {
-                size++;
-                SetBoardMeasures();
-                RandomizePositions();
-            }
-
-            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::J).bPressed)
-                DecrementCurrentSolverParam();
-
-            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::K).bPressed)
-                IncrementCurrentSolverParam();
-
-            if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::S).bPressed)
-                currentSolution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
-
-            if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
-                HighlightThreats();
-
-            if (window->GetKey(olc::C).bPressed)
-                currentFigureIndex = Window::GetNextArrayIndex(currentFigureIndex, figures.size());
-
-            if (window->GetKey(olc::G).bPressed)
-                globalHeuristicModeToggled = !globalHeuristicModeToggled;
-
-            if (window->GetKey(olc::Y).bPressed)
-                currentHeuristicIndex = Window::GetNextArrayIndex(currentHeuristicIndex, heuristics.size());
-
-            if (window->GetKey(olc::R).bPressed)
-                RandomizePositions();
-
-            if (window->GetKey(olc::S).bPressed)
-                currentSolverIndex = Window::GetNextArrayIndex(currentSolverIndex, solvers.size());
-
-            if (selectedFigureIndex == INVALID_FIGURE && window->GetMouse(0).bHeld)
-                SelectFigure();
-
-            if (selectedFigureIndex != INVALID_FIGURE && !window->GetMouse(0).bHeld)
-                DeselectFigure();
-
-            if (window->GetMouse(1).bPressed)
-                SetCurrentHeuristicResultFigureIndex();
-
             return true;
         }
 

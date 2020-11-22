@@ -11,7 +11,7 @@ int main()
 	ntf::Heuristic* localThreats(new ntf::LocalThreats);
 	ntf::Heuristic* globalThreats(new ntf::GlobalThreats);
 
-	ntf::Solver* beamSearch(new ntf::BeamSearch({ true, "K param", 56, 3, 8, }));
+	ntf::Solver* beamSearch(new ntf::BeamSearch({ true, "K param", 2, 1000, 16, 16, }));
 
 	ntf::Screen* board = new ntf::ChessBoard(
 		{ localThreats, globalThreats },

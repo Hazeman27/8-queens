@@ -29,6 +29,7 @@ namespace ntf {
                 "<Ctrl> + <S> - Solve",
                 "<Ctrl> + <J> - Decremenet solver param",
                 "<Ctrl> + <K> - Incremeent solver param",
+                "<Ctrl> + <R> - Reset solver param",
                 "<Ctrl> + \"+\" - Increment size",
                 "<Ctrl> + \"-\" - Decrement size",
                 });

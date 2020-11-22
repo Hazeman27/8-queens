@@ -7,7 +7,7 @@ namespace ntf {
 	{
 		GlobalThreats() : Heuristic("Global Threats") {}
 
-		HeuristicValue evaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) override
+		HeuristicValue EvaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) override
 		{
 			uint32_t threatsSum = 0;
 			size_t boardSize = figuresPositions.size();
@@ -29,19 +29,9 @@ namespace ntf {
 			return { position, threatsSum };
 		};
 
-		std::vector<HeuristicValue> evaluateColumn(const olc::vi2d& currentPos, const std::vector<olc::vi2d>& figuresPositions) override
+		uint32_t EvaluateBoard(const std::vector<olc::vi2d>& figuresPositions) override
 		{
-			std::vector<HeuristicValue> values{};
-
-			for (size_t i = 0; i < figuresPositions.size(); i++)
-				values.push_back(evaluatePosition({ currentPos.x, static_cast<int>(i) }, figuresPositions));
-
-			return values;
-		}
-
-		uint32_t evaluateBoard(const std::vector<olc::vi2d>& figuresPositions) override
-		{
-			return evaluatePosition(figuresPositions[0], figuresPositions).value;
+			return EvaluatePosition(figuresPositions[0], figuresPositions).value;
 		}
 	};
 }

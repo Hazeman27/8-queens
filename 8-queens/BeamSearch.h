@@ -13,6 +13,29 @@ namespace ntf {
 			auto startTime = Clock::now();
 			int generatedStatesCount = 0;
 
+			auto newState = [&](const std::vector<olc::vi2d>& positions, const olc::vi2d& movePos) {
+
+				std::vector<olc::vi2d> newPositions(positions);
+				newPositions[movePos.x].y = movePos.y;
+
+				uint32_t newStateHeuristicValue = heuristic->EvaluateBoard(newPositions);
+				generatedStatesCount++;
+
+				return SearchState{ newPositions, newStateHeuristicValue };
+			};
+
+			auto duration = [&]() {
+				return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - startTime);
+			};
+
+			if (heuristic->EvaluateBoard(figuresPositions) == 0) {
+				return {
+					figuresPositions,
+					duration(),
+					generatedStatesCount,
+				};
+			}
+
 			std::default_random_engine randomEngine;
 			randomEngine.seed(static_cast<uint32_t>(Clock::now().time_since_epoch().count()));
 
@@ -23,27 +46,20 @@ namespace ntf {
 			SearchStatesQueue queue{};
 			std::unordered_map<std::string, bool> visitedStates{};
 
-			auto newState = [&](const std::vector<olc::vi2d>& positions, const olc::vi2d& movePos) {
-
-				std::vector<olc::vi2d> newPositions(positions);
-				newPositions[movePos.x].y = movePos.y;
-
-				uint32_t newStateHeuristicValue = heuristic->evaluateBoard(newPositions);
-				generatedStatesCount++;
-
-				return SearchState{ newPositions, newStateHeuristicValue };
-			};
-
-			auto duration = [&]() {
-				return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - startTime);
-			};
-
 			for (int i = 0; i < beamWidth; i++) {
 
 				int randomCol = distribution(randomEngine);
 				int randomRow = distribution(randomEngine);
 
 				auto state = newState(figuresPositions, { randomCol, randomRow });
+
+				if (state.heuristicValue == 0) {
+					return {
+						state.figuresPositions,
+						duration(),
+						generatedStatesCount,
+					};
+				}
 
 				queue.push(state);
 				visitedStates.insert({ state.Serialize(), true });
@@ -65,13 +81,8 @@ namespace ntf {
 						};
 					}
 
-					for (auto& position : figuresPositions) {
-
-						auto values = heuristic->evaluateColumn(position, figuresPositions);
-						std::sort(values.begin(), values.end());
-
-						subQueue.push({ figuresPositions, values[0] });
-					}
+					for (auto& position : figuresPositions)
+						subQueue.push({ figuresPositions, heuristic->GetColumnMinValue(position, figuresPositions) });
 				}
 
 				for (int i = 0; i < beamWidth && !subQueue.empty(); i++) {

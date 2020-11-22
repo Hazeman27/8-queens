@@ -27,8 +27,34 @@ namespace ntf {
 
         Heuristic(const std::string& name) : name(name) {}
 
-        virtual HeuristicValue evaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) = 0;
-        virtual std::vector<HeuristicValue> evaluateColumn(const olc::vi2d& currentPos, const std::vector<olc::vi2d>& figuresPositions) = 0;
-        virtual uint32_t evaluateBoard(const std::vector<olc::vi2d>& figuresPositions) = 0;
+        virtual HeuristicValue EvaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) = 0;
+        virtual uint32_t EvaluateBoard(const std::vector<olc::vi2d>& figuresPositions) = 0;
+
+        HeuristicValue GetColumnMinValue(const olc::vi2d& currentPos, const std::vector<olc::vi2d>& figuresPositions)
+        {
+            if (figuresPositions.size() < 0)
+                return {};
+
+            HeuristicValue minValue = EvaluatePosition({ currentPos.x, 0 }, figuresPositions);
+
+            for (size_t i = 1; i < figuresPositions.size(); i++) {
+                auto value = EvaluatePosition({ currentPos.x, static_cast<int>(i) }, figuresPositions);
+
+                if (value < minValue)
+                    minValue = value;
+            }
+
+            return minValue;
+        }
+
+        std::vector<HeuristicValue> EvaluateColumn(const olc::vi2d& currentPos, const std::vector<olc::vi2d>& figuresPositions)
+        {
+            std::vector<HeuristicValue> values{};
+
+            for (size_t i = 0; i < figuresPositions.size(); i++)
+                values.push_back(EvaluatePosition({ currentPos.x, static_cast<int>(i) }, figuresPositions));
+
+            return values;
+        }
     };
 }

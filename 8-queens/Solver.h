@@ -10,6 +10,9 @@ namespace ntf {
         uint32_t heuristicValue;
 
         bool operator == (const SearchState& other) const {
+            if (figuresPositions.size() != other.figuresPositions.size())
+                return false;
+
             for (size_t i = 0; i < figuresPositions.size(); i++) {
                 if (figuresPositions[i] != other.figuresPositions[i])
                     return false;
@@ -42,6 +45,9 @@ namespace ntf {
         HeuristicValue heuristicValue;
 
         bool operator == (const SearchHeuristicValue& other) const {
+            if (figuresPositions.size() != other.figuresPositions.size())
+                return false;
+
             for (size_t i = 0; i < figuresPositions.size(); i++) {
                 if (figuresPositions[i] != other.figuresPositions[i])
                     return false;
@@ -68,6 +74,9 @@ namespace ntf {
         int generatedStatesCount;
 
         bool operator == (const Solution& other) const {
+            if (figuresPositions.size() != other.figuresPositions.size())
+                return false;
+
             for (size_t i = 0; i < figuresPositions.size(); i++) {
                 if (figuresPositions[i] != other.figuresPositions[i])
                     return false;
@@ -81,9 +90,10 @@ namespace ntf {
 
     struct SolverParam {
         bool isUsed = false;
-        std::string name = "K param";
-        int32_t max = INT32_MAX;
+        std::string name = "Solver param";
         int32_t min = INT32_MIN;
+        int32_t max = INT32_MAX;
+        int32_t defaultValue = 0;
         int32_t value = 0;
     };
 
