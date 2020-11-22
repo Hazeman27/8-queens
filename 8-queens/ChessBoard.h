@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Window.h"
 #include "Figure.h"
 #include "Heuristic.h"
@@ -38,7 +37,7 @@ namespace ntf {
         olc::vf2d tileSize;
 
         std::vector<Heuristic*> heuristics;
-        std::vector<Solver> solvers;
+        std::vector<Solver*> solvers;
 
         std::vector<olc::vi2d> figuresPositions;
         std::array<Figure*, FIGURES_COUNT> figures;
@@ -47,7 +46,7 @@ namespace ntf {
         std::default_random_engine randomGenerator;
 
     public:
-        ChessBoard(const std::vector<Heuristic*> heuristics, const std::vector<Solver>& solvers) :
+        ChessBoard(const std::vector<Heuristic*> heuristics, const std::vector<Solver*> solvers) :
             Screen("Puzzle", olc::P, "P"),
             globalHeuristicModeToggled(false),
             currentHeuristicResultFigureIndex(INVALID_FIGURE),
@@ -65,10 +64,7 @@ namespace ntf {
             figuresPositions{},
             figures{},
             window(nullptr)
-        {
-            for (auto& heuristic : heuristics)
-                heuristic->figuresPositions = &figuresPositions;
-        }
+        {}
 
         ~ChessBoard()
         {
@@ -78,15 +74,21 @@ namespace ntf {
             for (auto& heuristic : heuristics)
                 delete heuristic;
 
+            for (auto& solver : solvers)
+                delete solver;
+
+            heuristics.clear();
+            solvers.clear();
+
             delete window;
         }
 
     private:
         void DecrementCurrentSolverParam()
         {
-            if (CurrentSolver().param.value == CurrentSolver().param.min)
+            if (CurrentSolver()->param.value == CurrentSolver()->param.min)
                 return;
-            CurrentSolver().param.value--;
+            CurrentSolver()->param.value--;
         }
 
         void DeselectFigure()
@@ -164,7 +166,7 @@ namespace ntf {
             auto drawHeuristicResult = [&](uint32_t figureIndex) {
                 Heuristic* heuristic = heuristics.at(currentHeuristicIndex);
 
-                auto results = heuristic->evaluateColumn(figureIndex);
+                auto results = heuristic->evaluateColumn(figuresPositions[figureIndex], figuresPositions);
 
                 auto drawResult = [&](HeuristicValue result) {
                     auto& [position, value] = result;
@@ -200,18 +202,28 @@ namespace ntf {
 
         void DrawSolution()
         {
-            if (currentSolution.steps.size() == 0)
+            if (currentSolution == FAILED_SOLUTION) {
+                DrawStrings({ "Failed to find solution... " }, BoardSide::BOTTOM);
+                return;
+            }
+
+            if (currentSolution.figuresPositions.size() == 0)
                 return;
 
-            auto& [steps, duration, generatedStatesCount] = currentSolution;
+            auto& [positions, duration, generatedStatesCount] = currentSolution;
 
-            for (auto& [index, position] : steps) {
-                auto origPos = GetTilePositionI(figuresPositions.at(index));
-                auto trgPos = GetTilePositionI(position);
+            for (size_t i = 0; i < positions.size(); i++) {
+                auto origPos = GetTilePositionI(figuresPositions.at(i));
+                auto trgPos = GetTilePositionI(positions[i]);
 
                 window->DrawLine(origPos, trgPos, olc::BLUE, DASHED_LINE_PATTERN);
                 window->FillCircle(trgPos, 2, olc::BLUE);
             }
+
+            DrawStrings(
+                { "Duration: " + duration.count(), "States generated: " + generatedStatesCount },
+                BoardSide::BOTTOM
+            );
         }
 
         void DrawStrings(const std::vector<std::string>&& strings, BoardSide side = BoardSide::LEFT) {
@@ -341,9 +353,9 @@ namespace ntf {
 
         void IncrementCurrentSolverParam()
         {
-            if (CurrentSolver().param.value == CurrentSolver().param.max)
+            if (CurrentSolver()->param.value == CurrentSolver()->param.max)
                 return;
-            CurrentSolver().param.value++;
+            CurrentSolver()->param.value++;
         }
 
         void SelectFigure()
@@ -398,16 +410,16 @@ namespace ntf {
             return heuristics.at(currentHeuristicIndex);
         }
 
-        Solver& CurrentSolver()
+        Solver* CurrentSolver()
         {
             return solvers.at(currentSolverIndex);
         }
 
         std::string CurrentSolverParamString()
         {
-            if (!CurrentSolver().param.isUsed)
+            if (!CurrentSolver()->param.isUsed)
                 return "";
-            return CurrentSolver().param.name + ": " + std::to_string(CurrentSolver().param.value);
+            return CurrentSolver()->param.name + ": " + std::to_string(CurrentSolver()->param.value);
         }
 
         bool OnCreate(Window *window) override
@@ -443,7 +455,7 @@ namespace ntf {
                     "Figure: " + CurrentFigure()->name,
                     "Heuristic: " + CurrentHeuristic()->name,
                     "Global heuristic mode: " + std::to_string(globalHeuristicModeToggled),
-                    "Solution: " + CurrentSolver().name,
+                    "Solution: " + CurrentSolver()->name,
                     CurrentSolverParamString(),
                 }
             );
@@ -471,7 +483,7 @@ namespace ntf {
                 IncrementCurrentSolverParam();
 
             if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::S).bPressed)
-                currentSolution = CurrentSolver().function(figuresPositions, CurrentSolver().param, CurrentHeuristic());
+                currentSolution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
 
             if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
                 HighlightThreats();

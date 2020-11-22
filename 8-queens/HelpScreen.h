@@ -3,8 +3,6 @@
 
 
 namespace ntf {
-    constexpr const char* STRING_SEPARATOR = "----------------------------------";
-
     class HelpScreen : public Screen
     {
     private:
@@ -33,13 +31,13 @@ namespace ntf {
                 "<Ctrl> + <K> - Incremeent solver param",
                 "<Ctrl> + \"+\" - Increment size",
                 "<Ctrl> + \"-\" - Decrement size",
-            });
+                });
 
             window->DrawTextBox(Window::PutBelow(commands), {
                 "Hold <Shift> and hover over figure to see its threats.",
                 "<Right Click> on figure, to see its heuristic, value.",
                 "Click and drag figure, to change its position"
-            });
+                });
 
             window->DrawAvailableScreenOptions({ BASE_GAP_I, window->ScreenHeight() - window->screenOptionsApproxSize.y - BASE_GAP_I });
             return true;

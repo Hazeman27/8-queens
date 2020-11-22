@@ -30,10 +30,19 @@
     <ClInclude Include="Figure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HelpScreen.h">
+    <ClInclude Include="Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Window.h">
+    <ClInclude Include="BeamSearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LocalThreats.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalThreats.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HelpScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MenuScreen.h">

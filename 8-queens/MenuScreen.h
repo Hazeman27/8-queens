@@ -1,4 +1,3 @@
-#pragma once
 #include "Window.h"
 
 
@@ -9,7 +8,7 @@ namespace ntf {
         Window* window;
 
     public:
-        MenuScreen() : Screen("Menu", olc::ESCAPE, "ESC"), window(nullptr) {};
+        MenuScreen() : ntf::Screen("Menu", olc::ESCAPE, "ESC"), window(nullptr) {};
         ~MenuScreen() { delete window; };
 
         bool OnCreate(Window* window) override {
@@ -36,3 +35,4 @@ namespace ntf {
         }
     };
 }
+

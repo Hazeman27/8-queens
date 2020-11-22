@@ -1,6 +1,7 @@
 #pragma once
 #include "Window.h"
 
+
 namespace ntf {
     struct Figure {
         std::string name;

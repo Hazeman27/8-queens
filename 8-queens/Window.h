@@ -1,7 +1,7 @@
 #pragma once
-
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
+
 
 namespace ntf {
     constexpr const char* APP_NAME = "8 Queens";
