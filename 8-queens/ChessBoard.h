@@ -202,8 +202,14 @@ namespace ntf {
 
         void DrawSolution()
         {
-            if (currentSolution == FAILED_SOLUTION) {
-                DrawStrings({ "Failed to find solution... " }, BoardSide::BOTTOM);
+            if (currentSolution.figuresPositions.size() == 0 && currentSolution.duration.count() > 0) {
+                DrawStrings(
+                    {
+                        "Failed to find solution... ",
+                        "Duration: " + std::to_string(currentSolution.duration.count()) + "ms"
+                    },
+                    BoardSide::BOTTOM
+                );
                 return;
             }
 

@@ -5,6 +5,11 @@
 
 
 namespace ntf {
+ 
+    using HighResClock = std::chrono::high_resolution_clock;
+    using TimePoint = std::chrono::high_resolution_clock::time_point;
+    using Milliseconds = std::chrono::milliseconds;
+
     struct SearchState {
         std::vector<olc::vi2d> figuresPositions;
         uint32_t heuristicValue;
@@ -70,7 +75,8 @@ namespace ntf {
 
     struct Solution {
         std::vector<olc::vi2d> figuresPositions;
-        std::chrono::milliseconds duration;
+        Milliseconds duration = std::chrono::milliseconds::zero();
+
         int generatedStatesCount;
 
         bool operator == (const Solution& other) const {
@@ -86,8 +92,6 @@ namespace ntf {
         }
     };
 
-    const Solution FAILED_SOLUTION = { { {-1, -1} }, std::chrono::milliseconds(0), -1 };
-
     struct SolverParam {
         bool isUsed = false;
         std::string name = "Solver param";
@@ -102,6 +106,10 @@ namespace ntf {
         SolverParam param;
 
         Solver(const std::string& name, const SolverParam& param) : name(name), param(param) {}
+
+        Milliseconds TakeTimeStamp(TimePoint startTime) {
+            return std::chrono::duration_cast<Milliseconds>(HighResClock::now() - startTime);
+        };
 
         virtual Solution Solve(const std::vector<olc::vi2d>& figuresPositions, const SolverParam& param, Heuristic* heuristic) = 0;
     };

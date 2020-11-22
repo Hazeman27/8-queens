@@ -159,6 +159,7 @@
     <ClInclude Include="MenuScreen.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
     <ClInclude Include="Solver.h" />
+    <ClInclude Include="TabuSearch.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
