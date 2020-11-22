@@ -5,14 +5,10 @@
 namespace ntf {
     class HelpScreen : public Screen
     {
-    private:
-        Window* window;
-
     public:
-        HelpScreen() : Screen("Help", olc::H, "H"), window(nullptr) {};
-        ~HelpScreen() { delete window; };
+        HelpScreen() : Screen("Help", olc::H, "H") {};
 
-        bool OnCreate(Window* window) override {
+        bool OnCreate(const std::shared_ptr<Window> window) override {
             this->window = window;
             return true;
         }
@@ -32,15 +28,19 @@ namespace ntf {
                 "<Ctrl> + <R> - Reset solver param",
                 "<Ctrl> + \"+\" - Increment size",
                 "<Ctrl> + \"-\" - Decrement size",
-                });
+            });
 
             window->DrawTextBox(Window::PutBelow(commands), {
                 "Hold <Shift> and hover over figure to see its threats.",
                 "<Right Click> on figure, to see its heuristic, value.",
                 "Click and drag figure, to change its position"
-                });
+            });
 
-            window->DrawAvailableScreenOptions({ BASE_GAP_I, window->ScreenHeight() - window->screenOptionsApproxSize.y - BASE_GAP_I });
+            window->DrawAvailableScreenOptions({
+                BASE_GAP_I,
+                window->ScreenHeight() - window->screenOptionsApproxSize.y - BASE_GAP_I
+            });
+
             return true;
         }
     };

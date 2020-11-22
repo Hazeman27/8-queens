@@ -3,11 +3,15 @@
 
 
 namespace ntf {
-	struct LocalThreats : public Heuristic
+	class LocalThreats : public Heuristic
 	{
+	public:
 		LocalThreats() : Heuristic("Local Threats") {}
 
-		HeuristicValue EvaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) override
+		HeuristicValue EvaluatePosition(
+			const olc::vi2d& position,
+			const std::vector<olc::vi2d>& figuresPositions
+		) override
 		{
 			return {
 				position,

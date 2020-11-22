@@ -3,11 +3,15 @@
 
 
 namespace ntf {
-	struct GlobalThreats : public Heuristic
+	class GlobalThreats : public Heuristic
 	{
+	public:
 		GlobalThreats() : Heuristic("Global Threats") {}
 
-		HeuristicValue EvaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) override
+		HeuristicValue EvaluatePosition(
+			const olc::vi2d& position,
+			const std::vector<olc::vi2d>& figuresPositions
+		) override
 		{
 			uint32_t threatsSum = 0;
 			size_t boardSize = figuresPositions.size();

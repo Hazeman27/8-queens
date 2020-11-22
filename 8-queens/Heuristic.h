@@ -22,16 +22,25 @@ namespace ntf {
         }
     };
     
-    struct Heuristic {
+    class Heuristic : public std::enable_shared_from_this<Heuristic>
+    {
+    public:
         std::string name;
 
         Heuristic(const std::string& name) : name(name) {}
+        Heuristic(std::string&& name) : name(std::move(name)) {}
 
-        virtual HeuristicValue EvaluatePosition(const olc::vi2d& position, const std::vector<olc::vi2d>& figuresPositions) = 0;
+        virtual HeuristicValue EvaluatePosition(
+            const olc::vi2d& position,
+            const std::vector<olc::vi2d>& figuresPositions
+        ) = 0;
+
         virtual uint32_t EvaluateBoard(const std::vector<olc::vi2d>& figuresPositions) = 0;
 
-        HeuristicValue GetColumnMinValue(const olc::vi2d& currentPos, const std::vector<olc::vi2d>& figuresPositions)
-        {
+        HeuristicValue GetColumnMinValue(
+            const olc::vi2d& currentPos,
+            const std::vector<olc::vi2d>& figuresPositions
+        ) {
             if (figuresPositions.size() < 0)
                 return {};
 
@@ -47,8 +56,10 @@ namespace ntf {
             return minValue;
         }
 
-        std::vector<HeuristicValue> EvaluateColumn(const olc::vi2d& currentPos, const std::vector<olc::vi2d>& figuresPositions)
-        {
+        std::vector<HeuristicValue> EvaluateColumn(
+            const olc::vi2d& currentPos,
+            const std::vector<olc::vi2d>& figuresPositions
+        ) {
             std::vector<HeuristicValue> values{};
 
             for (size_t i = 0; i < figuresPositions.size(); i++)

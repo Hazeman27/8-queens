@@ -4,10 +4,17 @@
 
 
 namespace ntf {
-	struct BeamSearch : public Solver {
+	class BeamSearch : public Solver
+	{
+	public:
 		BeamSearch(const SolverParam& param) : Solver("Beam Search", param) {}
 
-		Solution Solve(const std::vector<olc::vi2d>& figuresPositions, const SolverParam& param, Heuristic* heuristic) override {
+		Solution Solve(
+			const std::vector<olc::vi2d>& figuresPositions,
+			const SolverParam& param,
+			const std::shared_ptr<Heuristic> heuristic
+		) override
+		{
 			auto startTime = HighResClock::now();
 			int generatedStatesCount = 0;
 
@@ -75,8 +82,12 @@ namespace ntf {
 						};
 					}
 
-					for (auto& position : figuresPositions)
-						subQueue.push({ figuresPositions, heuristic->GetColumnMinValue(position, figuresPositions) });
+					for (auto& position : figuresPositions) {
+						subQueue.push({
+							figuresPositions,
+							heuristic->GetColumnMinValue(position, figuresPositions)
+						});
+					}
 				}
 
 				for (int i = 0; i < beamWidth && !subQueue.empty(); i++) {

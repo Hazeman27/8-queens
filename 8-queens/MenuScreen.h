@@ -4,14 +4,10 @@
 namespace ntf {
     class MenuScreen : public Screen
     {
-    private:
-        Window* window;
-
     public:
-        MenuScreen() : ntf::Screen("Menu", olc::ESCAPE, "ESC"), window(nullptr) {};
-        ~MenuScreen() { delete window; };
+        MenuScreen() : ntf::Screen("Menu", olc::ESCAPE, "ESC") {};
 
-        bool OnCreate(Window* window) override {
+        bool OnCreate(const std::shared_ptr<Window> window) override {
             this->window = window;
             return true;
         }

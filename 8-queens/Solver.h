@@ -101,16 +101,26 @@ namespace ntf {
         int32_t value = 0;
     };
 
-    struct Solver {
+    class Solver : public std::enable_shared_from_this<Solver>
+    {
+    public:
         std::string name;
         SolverParam param;
 
-        Solver(const std::string& name, const SolverParam& param) : name(name), param(param) {}
+        Solver(const std::string& name, const SolverParam& param) : name(name), param(param)
+        {}
+
+        Solver(std::string&& name, SolverParam&& param) : name(std::move(name)), param(std::move(param))
+        {}
 
         Milliseconds TakeTimeStamp(TimePoint startTime) {
             return std::chrono::duration_cast<Milliseconds>(HighResClock::now() - startTime);
         };
 
-        virtual Solution Solve(const std::vector<olc::vi2d>& figuresPositions, const SolverParam& param, Heuristic* heuristic) = 0;
+        virtual Solution Solve(
+            const std::vector<olc::vi2d>& figuresPositions,
+            const SolverParam& param,
+            const std::shared_ptr<Heuristic> heuristic
+        ) = 0;
     };
 }

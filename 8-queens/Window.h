@@ -34,12 +34,45 @@ namespace ntf {
     constexpr PositionI TITLE_POSITION = { 4, 4 };
     constexpr PositionI SCREEN_POSITION = { 4, 16 };
 
-    struct Window;
+    class Window;
 
-    struct Screen {
+    struct Theme : public std::enable_shared_from_this<Theme> {
+        std::string name;
+        std::string figuresFolder;
+        olc::Pixel bgColor;
+        olc::Pixel fgColor;
+        olc::Pixel accentColor;
+
+        Theme(
+            const std::string& name,
+            const std::string& figuresFolder,
+            const olc::Pixel& bgColor,
+            const olc::Pixel& fgColor,
+            const olc::Pixel& accentColor
+        ) : name(name), figuresFolder(figuresFolder), bgColor(bgColor), fgColor(fgColor), accentColor(accentColor)
+        {}
+
+        Theme(
+            std::string&& name,
+            std::string&& figuresFolder,
+            olc::Pixel&& bgColor,
+            olc::Pixel&& fgColor,
+            olc::Pixel&& accentColor
+        ) :
+            name(std::move(name)),
+            figuresFolder(std::move(figuresFolder)),
+            bgColor(std::move(bgColor)),
+            fgColor(std::move(fgColor)),
+            accentColor(std::move(accentColor))
+        {}
+    };
+
+    class Screen : public std::enable_shared_from_this<Screen> {
+    public:
         std::string name;
         std::string keyStringValue;
         olc::Key key;
+        std::shared_ptr<Window> window;
 
         Screen(const std::string& name, const olc::Key& key, const std::string& keyStringValue) :
             name(name),
@@ -47,32 +80,32 @@ namespace ntf {
             keyStringValue(keyStringValue)
         {};
 
-        virtual bool OnCreate(Window* window) = 0;
+        Screen(std::string&& name, olc::Key&& key, std::string&& keyStringValue) :
+            name(std::move(name)),
+            key(std::move(key)),
+            keyStringValue(std::move(keyStringValue))
+        {};
+
+        virtual bool OnCreate(const std::shared_ptr<Window> window) = 0;
         virtual bool DrawSelf(float elapsedTime) = 0;
     };
 
-    struct Theme {
-        std::string name;
-        std::string figuresFolder;
-        olc::Pixel bgColor;
-        olc::Pixel fgColor;
-    };
-
-    struct Window : public olc::PixelGameEngine
+    class Window : public olc::PixelGameEngine, public std::enable_shared_from_this<Window>
     {
+    public:
         bool inspectionModeToggled;
         uint32_t currentScreenIndex;
         uint32_t currentThemeIndex;
 
-        std::vector<Screen*> screens;
-        std::vector<Theme> themes;
+        std::vector<std::shared_ptr<Screen>> screens;
+        std::vector<std::shared_ptr<Theme>> themes;
         
         olc::vi2d screenOptionsApproxSize;
         olc::ResourcePack* resourcePack;
 
         Window(
-            const std::vector<Screen*>& screens,
-            const std::vector<Theme>& themes,
+            const std::vector<std::shared_ptr<Screen>>& screens,
+            const std::vector<std::shared_ptr<Theme>>& themes,
             uint32_t defaultScreen = DEFAULT_SCREEN,
             uint32_t defaultTheme = DEFAULT_THEME
         ) :
@@ -92,16 +125,40 @@ namespace ntf {
             }
         }
 
-        ~Window()
+        ~Window() { delete resourcePack; }
+
+    private:
+        bool CreateResourcePack()
         {
-            for (auto& screen : screens)
-                delete screen;
-            delete resourcePack;
+            std::vector<std::vector<std::string>> figuresImages = {
+                GetThemeFilesPaths("black_bishop.png"),
+                GetThemeFilesPaths("white_bishop.png"),
+                GetThemeFilesPaths("black_king.png"),
+                GetThemeFilesPaths("white_king.png"),
+                GetThemeFilesPaths("black_knight.png"),
+                GetThemeFilesPaths("white_knight.png"),
+                GetThemeFilesPaths("black_pawn.png"),
+                GetThemeFilesPaths("white_pawn.png"),
+                GetThemeFilesPaths("black_queen.png"),
+                GetThemeFilesPaths("white_queen.png"),
+                GetThemeFilesPaths("black_rook.png"),
+                GetThemeFilesPaths("white_rook.png"),
+            };
+
+            for (auto& figureImages : figuresImages) {
+                for (auto& image : figureImages)
+                    resourcePack->AddFile(image);
+            }
+
+            if (!resourcePack->SavePack(RESOURCE_PACK_NAME, RESOURCE_PACK_KEY))
+                return false;
+            return true;
         }
 
+    public:
         bool OnUserCreate() override {
             for (auto& screen : screens) {
-                screen->OnCreate(this);
+                screen->OnCreate(shared_from_this());
                 
                 if (screen->name.size() > screenOptionsApproxSize.x)
                     screenOptionsApproxSize.x = static_cast<int>(screen->name.size() * 16) + 12;
@@ -208,46 +265,17 @@ namespace ntf {
             return DrawTextBox(position, strings);
         }
 
-        Screen* CurrentScreen() { return screens.at(currentScreenIndex); }
-
-        bool CreateResourcePack()
-        {
-            if (resourcePack == nullptr)
-                resourcePack = new olc::ResourcePack();
-
-            std::vector<std::vector<std::string>> figuresImages = {
-                GetThemeFilesPaths("black_bishop.png"),
-                GetThemeFilesPaths("white_bishop.png"),
-                GetThemeFilesPaths("black_king.png"),
-                GetThemeFilesPaths("white_king.png"),
-                GetThemeFilesPaths("black_knight.png"),
-                GetThemeFilesPaths("white_knight.png"),
-                GetThemeFilesPaths("black_pawn.png"),
-                GetThemeFilesPaths("white_pawn.png"),
-                GetThemeFilesPaths("black_queen.png"),
-                GetThemeFilesPaths("white_queen.png"),
-                GetThemeFilesPaths("black_rook.png"),
-                GetThemeFilesPaths("white_rook.png"),
-            };
-
-            for (auto& figureImages : figuresImages) {
-                for (auto& image : figureImages)
-                    resourcePack->AddFile(image);
-            }
-
-            if (!resourcePack->SavePack(RESOURCE_PACK_NAME, RESOURCE_PACK_KEY))
-                return false;
-            return true;
-        }
+        std::shared_ptr<Screen> CurrentScreen() { return screens.at(currentScreenIndex); }
         
-        const Theme& CurrentTheme() { return themes.at(currentThemeIndex); }
+        std::shared_ptr<Theme> CurrentTheme() { return themes.at(currentThemeIndex); }
 
-        const olc::Pixel& BgColor() { return CurrentTheme().bgColor; }
-        const olc::Pixel& FgColor() { return CurrentTheme().fgColor; }
+        const olc::Pixel& BgColor() { return CurrentTheme()->bgColor; }
+        const olc::Pixel& FgColor() { return CurrentTheme()->fgColor; }
+        const olc::Pixel& AccentColor() { return CurrentTheme()->accentColor; }
         
-        std::string GetThemeFilePath(const std::string& filepath, const Theme& theme)
+        std::string GetThemeFilePath(const std::string& filepath, const std::shared_ptr<Theme> theme)
         {
-            return theme.figuresFolder + "/" + filepath;
+            return theme->figuresFolder + "/" + filepath;
         }
 
         std::vector<std::string> GetThemeFilesPaths(const std::string& filepath)

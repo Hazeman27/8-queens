@@ -36,17 +36,19 @@ namespace ntf {
         olc::vf2d boardSize;
         olc::vf2d tileSize;
 
-        std::vector<Heuristic*> heuristics;
-        std::vector<Solver*> solvers;
+        std::vector<std::shared_ptr<Heuristic>> heuristics;
+        std::vector<std::shared_ptr<Solver>> solvers;
 
         std::vector<olc::vi2d> figuresPositions;
-        std::array<Figure*, FIGURES_COUNT> figures;
+        std::array<std::shared_ptr<Figure>, FIGURES_COUNT> figures;
 
-        Window* window;
         std::default_random_engine randomGenerator;
 
     public:
-        ChessBoard(const std::vector<Heuristic*> heuristics, const std::vector<Solver*> solvers) :
+        ChessBoard(
+            const std::vector<std::shared_ptr<Heuristic>> heuristics,
+            const std::vector<std::shared_ptr<Solver>> solvers
+        ) :
             Screen("Puzzle", olc::P, "P"),
             globalHeuristicModeToggled(false),
             currentHeuristicResultFigureIndex(INVALID_FIGURE),
@@ -62,26 +64,8 @@ namespace ntf {
             heuristics(heuristics),
             solvers(solvers),
             figuresPositions{},
-            figures{},
-            window(nullptr)
+            figures{}
         {}
-
-        ~ChessBoard()
-        {
-            for (auto& figure : figures)
-                delete figure;
-
-            for (auto& heuristic : heuristics)
-                delete heuristic;
-
-            for (auto& solver : solvers)
-                delete solver;
-
-            heuristics.clear();
-            solvers.clear();
-
-            delete window;
-        }
 
     private:
         void DecrementCurrentSolverParam()
@@ -132,7 +116,7 @@ namespace ntf {
 
         void DrawFigures()
         {
-            Figure* figure = CurrentFigure();
+            std::shared_ptr<Figure> figure = CurrentFigure();
 
             olc::vi2d currentFigureSpriteSize{
                 figure->blackSprites.at(window->currentThemeIndex)->width,
@@ -164,7 +148,7 @@ namespace ntf {
                 return;
 
             auto drawHeuristicResult = [&](uint32_t figureIndex) {
-                Heuristic* heuristic = heuristics.at(currentHeuristicIndex);
+                std::shared_ptr<Heuristic> heuristic = heuristics.at(currentHeuristicIndex);
 
                 auto results = heuristic->EvaluateColumn(figuresPositions[figureIndex], figuresPositions);
 
@@ -184,7 +168,7 @@ namespace ntf {
                 olc::vi2d bgSize = { static_cast<int>(tileSize.x), static_cast<int>(tileSize.y / 2) };
 
                 window->FillRect(bgPos, bgSize, GetTileColor(trgRes.position));
-                window->DrawRect(GetTilePosition(trgRes.position), tileSize, olc::RED);
+                window->DrawRect(GetTilePosition(trgRes.position), tileSize, window->AccentColor());
 
                 for (auto& result : results)
                     drawResult(result);
@@ -222,8 +206,8 @@ namespace ntf {
                 auto origPos = GetTilePositionI(figuresPositions.at(i)) + tileSize / 2;
                 auto trgPos = GetTilePositionI(positions[i]) + tileSize / 2;
 
-                window->DrawLine(origPos, trgPos, olc::MAGENTA, DASHED_LINE_PATTERN);
-                window->FillCircle(trgPos, 2, olc::MAGENTA);
+                window->DrawLine(origPos, trgPos, window->AccentColor(), DASHED_LINE_PATTERN);
+                window->FillCircle(trgPos, 2, window->AccentColor());
             }
 
             DrawStrings(
@@ -355,8 +339,8 @@ namespace ntf {
             for (auto& index : threatIndices) {
                 auto threatPosition = GetTilePositionI(figuresPositions.at(index)) + tileSize / 2.0f;
 
-                window->FillCircle(threatPosition, 2, olc::RED);
-                window->DrawLine(trgPos, threatPosition, olc::RED, DASHED_LINE_PATTERN);
+                window->FillCircle(threatPosition, 2, window->AccentColor());
+                window->DrawLine(trgPos, threatPosition, window->AccentColor(), DASHED_LINE_PATTERN);
             }
         }
 
@@ -415,19 +399,19 @@ namespace ntf {
         }
 
     public:
-        Figure* CurrentFigure()
+        std::shared_ptr<Figure> CurrentFigure()
         {
             if (currentFigureIndex == INVALID_FIGURE)
                 return nullptr;
             return figures[currentFigureIndex];
         }
 
-        Heuristic* CurrentHeuristic()
+        std::shared_ptr<Heuristic> CurrentHeuristic()
         {
             return heuristics.at(currentHeuristicIndex);
         }
 
-        Solver* CurrentSolver()
+        std::shared_ptr<Solver> CurrentSolver()
         {
             return solvers.at(currentSolverIndex);
         }
@@ -450,7 +434,7 @@ namespace ntf {
                 { BASE_GAP_I, static_cast<int>(boardPosition.y) },
                 {
                     "Size: " + std::to_string(size),
-                    "Theme: " + window->CurrentTheme().name,
+                    "Theme: " + window->CurrentTheme()->name,
                     "Figure: " + CurrentFigure()->name,
                     "Heuristic: " + CurrentHeuristic()->name,
                     "Global heuristic mode: " + std::to_string(globalHeuristicModeToggled),
@@ -517,21 +501,22 @@ namespace ntf {
             return true;
         }
 
-        bool OnCreate(Window *window) override
+        bool OnCreate(const std::shared_ptr<Window> window) override
         {
             this->window = window;
 
-            figures = {
-                new Figure("Bishop", window->GetThemeFilesPaths("black_bishop.png"), window->GetThemeFilesPaths("white_bishop.png"), window),
-                new Figure("King", window->GetThemeFilesPaths("black_king.png"), window->GetThemeFilesPaths("white_king.png"), window),
-                new Figure("Knight", window->GetThemeFilesPaths("black_knight.png"), window->GetThemeFilesPaths("white_knight.png"), window),
-                new Figure("Pawn", window->GetThemeFilesPaths("black_pawn.png"), window->GetThemeFilesPaths("white_pawn.png"), window),
-                new Figure("Queen", window->GetThemeFilesPaths("black_queen.png"), window->GetThemeFilesPaths("white_queen.png"), window),
-                new Figure("Rook", window->GetThemeFilesPaths("black_rook.png"), window->GetThemeFilesPaths("white_rook.png"), window),
-            };
+            std::shared_ptr<Figure> bishop (new Figure("Bishop", window->GetThemeFilesPaths("black_bishop.png"), window->GetThemeFilesPaths("white_bishop.png"), window));
+            std::shared_ptr<Figure> king   (new Figure("King",   window->GetThemeFilesPaths("black_king.png"),   window->GetThemeFilesPaths("white_king.png"),   window));
+            std::shared_ptr<Figure> knight (new Figure("Knight", window->GetThemeFilesPaths("black_knight.png"), window->GetThemeFilesPaths("white_knight.png"), window));
+            std::shared_ptr<Figure> pawn   (new Figure("Pawn",   window->GetThemeFilesPaths("black_pawn.png"),   window->GetThemeFilesPaths("white_pawn.png"),   window));
+            std::shared_ptr<Figure> queen  (new Figure("Queen",  window->GetThemeFilesPaths("black_queen.png"),  window->GetThemeFilesPaths("white_queen.png"),  window));
+            std::shared_ptr<Figure> rook   (new Figure("Rook",   window->GetThemeFilesPaths("black_rook.png"),   window->GetThemeFilesPaths("white_rook.png"),   window));
+  
+            figures = { bishop, king, knight, pawn, queen, rook };
 
             SetBoardMeasures();
             RandomizePositions();
+
             return true;
         }
 

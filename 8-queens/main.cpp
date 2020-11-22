@@ -8,29 +8,23 @@
 
 int main()
 {
-	ntf::Heuristic* localThreats(new ntf::LocalThreats);
-	ntf::Heuristic* globalThreats(new ntf::GlobalThreats);
+	std::shared_ptr<ntf::Heuristic> localThreats(new ntf::LocalThreats());
+	std::shared_ptr<ntf::Heuristic> globalThreats(new ntf::GlobalThreats());
 
-	ntf::Solver* beamSearch(new ntf::BeamSearch({ true, "K param", 2, 1000, 16, 16, }));
+	std::shared_ptr<ntf::Solver> beamSearch(new ntf::BeamSearch({ true, "K param", 2, 1000, 16, 16, }));
 
-	ntf::Screen* board = new ntf::ChessBoard(
-		{ localThreats, globalThreats },
-		{ beamSearch }
-	);
+	std::shared_ptr<ntf::Screen> board(new ntf::ChessBoard({ localThreats, globalThreats }, { beamSearch }));
+	std::shared_ptr<ntf::Screen> help(new ntf::HelpScreen());
+	std::shared_ptr<ntf::Screen> menu(new ntf::MenuScreen());
 
-	ntf::Screen* help = new ntf::HelpScreen();
-	ntf::Screen* menu = new ntf::MenuScreen();
+	std::shared_ptr<ntf::Theme> dark(new ntf::Theme("Dark", "chess", { 57, 57, 57 }, { 255, 255, 255 }, olc::RED));
+	std::shared_ptr<ntf::Theme> green(new ntf::Theme("Green", "chess_green", { 5, 113, 55 }, { 252, 244, 225 }, olc::MAGENTA));
+	std::shared_ptr<ntf::Theme> pink(new ntf::Theme("Pink", "chess_pink", { 3, 11, 30 }, { 250, 142, 200 }, olc::YELLOW));
 
-	std::vector<ntf::Theme> themes{
-		ntf::Theme{ "Dark", "chess", {57, 57, 57}, {255, 255, 255} },
-		ntf::Theme{ "Green", "chess_green", {5, 113, 55}, {252, 244, 225} },
-		ntf::Theme{ "Pink", "chess_pink", {3, 11, 30}, {250, 142, 200} },
-	};
+	std::shared_ptr<ntf::Window> window(new ntf::Window({ board, help, menu }, { dark, green, pink }, 0));
 
-	ntf::Window window({ board, help, menu }, themes, 0);
-
-	if (window.Construct(460, 350, 2, 2))
-		window.Start();
+	if (window->Construct(460, 350, 2, 2))
+		window->Start();
 
 	return 0;
 }

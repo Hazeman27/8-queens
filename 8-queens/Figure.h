@@ -3,7 +3,9 @@
 
 
 namespace ntf {
-    struct Figure {
+    class Figure
+    {
+    public:
         std::string name;
 
         std::vector<olc::Sprite*> blackSprites;
@@ -13,7 +15,7 @@ namespace ntf {
             const std::string& name,
             const std::vector<std::string>& blackSpritePaths,
             const std::vector<std::string>& whiteSpritePaths,
-            const Window* window
+            const std::shared_ptr<Window> window
         ) : name(name), blackSprites{}, whiteSprites{}
         {
             for (auto& spritePath : blackSpritePaths)
