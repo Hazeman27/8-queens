@@ -18,17 +18,6 @@ namespace ntf {
 			auto startTime = HighResClock::now();
 			int generatedStatesCount = 0;
 
-			auto newState = [&](const std::vector<olc::vi2d>& positions, const olc::vi2d& movePos) {
-
-				std::vector<olc::vi2d> newPositions(positions);
-				newPositions[movePos.x].y = movePos.y;
-
-				uint32_t newStateHeuristicValue = heuristic->EvaluateBoard(newPositions);
-				generatedStatesCount++;
-
-				return SearchState{ newPositions, newStateHeuristicValue };
-			};
-
 			if (heuristic->EvaluateBoard(figuresPositions) == 0) {
 				return {
 					figuresPositions,
@@ -44,7 +33,7 @@ namespace ntf {
 
 			std::uniform_int_distribution<int> distribution(0, static_cast<int>(figuresPositions.size() - 1));
 
-			SearchStatesQueue queue{};
+			SearchStatesQueue queue;
 			std::unordered_map<std::string, bool> visitedStates{};
 
 			for (int i = 0; i < beamWidth; i++) {
@@ -52,7 +41,8 @@ namespace ntf {
 				int randomCol = distribution(randomEngine);
 				int randomRow = distribution(randomEngine);
 
-				auto state = newState(figuresPositions, { randomCol, randomRow });
+				auto state = GenerateState(figuresPositions, { randomCol, randomRow }, heuristic);
+				generatedStatesCount++;
 
 				if (state.heuristicValue == 0) {
 					return {
@@ -68,7 +58,7 @@ namespace ntf {
 
 			while (!queue.empty()) {
 
-				SearchHeuristicValuesQueue subQueue{};
+				SearchStatesQueue subQueue;
 
 				while (!queue.empty()) {
 					auto [figuresPositions, stateHeuristicValue] = queue.top();
@@ -83,19 +73,21 @@ namespace ntf {
 					}
 
 					for (auto& position : figuresPositions) {
-						subQueue.push({
-							figuresPositions,
-							heuristic->GetColumnMinValue(position, figuresPositions)
-						});
+
+						auto results = heuristic->EvaluateColumn(position, figuresPositions);
+
+						for (auto& result : results) {
+							subQueue.push(GenerateState(figuresPositions, result.position, heuristic));
+							generatedStatesCount++;
+						}
 					}
 				}
 
 				for (int i = 0; i < beamWidth && !subQueue.empty(); i++) {
 
-					auto [positions, heuristicValue] = subQueue.top();
+					auto state = subQueue.top();
 					subQueue.pop();
 
-					auto state = newState(positions, heuristicValue.position);
 					std::string stateKey = state.Serialize();
 
 					if (visitedStates.find(stateKey) != visitedStates.end())

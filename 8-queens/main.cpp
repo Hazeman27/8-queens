@@ -2,6 +2,7 @@
 #include "HelpScreen.h"
 #include "MenuScreen.h"
 #include "BeamSearch.h"
+#include "TabuSearch.h"
 #include "LocalThreats.h"
 #include "GlobalThreats.h"
 
@@ -12,8 +13,9 @@ int main()
 	std::shared_ptr<ntf::Heuristic> globalThreats(new ntf::GlobalThreats());
 
 	std::shared_ptr<ntf::Solver> beamSearch(new ntf::BeamSearch({ true, "K param", 2, 1000, 16, 16, }));
+	std::shared_ptr<ntf::Solver> tabuSearch(new ntf::TabuSearch({ true, "Tabu list max size", 2, 1000, 16, 16, }));
 
-	std::shared_ptr<ntf::Screen> board(new ntf::ChessBoard({ localThreats, globalThreats }, { beamSearch }));
+	std::shared_ptr<ntf::Screen> board(new ntf::ChessBoard({ globalThreats, localThreats, }, { beamSearch, tabuSearch }));
 	std::shared_ptr<ntf::Screen> help(new ntf::HelpScreen());
 	std::shared_ptr<ntf::Screen> menu(new ntf::MenuScreen());
 

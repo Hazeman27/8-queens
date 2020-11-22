@@ -16,24 +16,26 @@ namespace ntf {
         bool DrawSelf(float elapsedTime) override
         {
             BoundingRect commands = window->DrawTextBox({ SCREEN_POSITION.x, SCREEN_POSITION.y }, {
+                "<Arrow Up> - Next heuristic",
+                "<Arrow Down> - Prev. heuristic",
+                "<Arrow Right> - Next solution type",
+                "<Arrow Left> - Prev. solution type",
                 "<C> - Change figure",
-                "<Y> - Change heuristic",
                 "<R> - Randomize",
-                "<S> - Change solution type",
                 "<T> - Change theme",
                 "<G> - Toggle global heuristic mode",
-                "<Ctrl> + <S> - Solve",
-                "<Ctrl> + <J> - Decremenet solver param",
-                "<Ctrl> + <K> - Incremeent solver param",
+                "<S> - Solve",
+                "<Ctrl> + <J> - Decrease solver param",
+                "<Ctrl> + <K> - Increase solver param",
                 "<Ctrl> + <R> - Reset solver param",
-                "<Ctrl> + \"+\" - Increment size",
-                "<Ctrl> + \"-\" - Decrement size",
+                "<Ctrl> + \"+\" - Increase board size",
+                "<Ctrl> + \"-\" - Decrease board size",
             });
 
             window->DrawTextBox(Window::PutBelow(commands), {
                 "Hold <Shift> and hover over figure to see its threats.",
                 "<Right Click> on figure, to see its heuristic, value.",
-                "Click and drag figure, to change its position"
+                "Click and drag figure, to change its position."
             });
 
             window->DrawAvailableScreenOptions({

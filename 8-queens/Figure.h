@@ -32,6 +32,9 @@ namespace ntf {
 
             for (auto& sprite : whiteSprites)
                 delete sprite;
+
+            blackSprites.clear();
+            whiteSprites.clear();
         }
     };
 }

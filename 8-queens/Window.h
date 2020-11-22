@@ -295,7 +295,12 @@ namespace ntf {
 
         static uint32_t GetNextArrayIndex(uint32_t currentIndex, size_t arraySize)
         {
-            return (static_cast<size_t>(currentIndex) + 1) % arraySize;
+            return (static_cast<size_t>(currentIndex + 1)) % arraySize;
+        }
+
+        static uint32_t GetPreviousArrayIndex(uint32_t currentIndex, size_t arraySize)
+        {
+            return (static_cast<size_t>(std::labs(currentIndex - 1))) % arraySize;
         }
 
         static olc::vi2d PutBelow(const BoundingRect& target, int gap = BASE_GAP_I * 2)

@@ -113,8 +113,20 @@ namespace ntf {
         Solver(std::string&& name, SolverParam&& param) : name(std::move(name)), param(std::move(param))
         {}
 
-        Milliseconds TakeTimeStamp(TimePoint startTime) {
+        static Milliseconds TakeTimeStamp(TimePoint startTime) {
             return std::chrono::duration_cast<Milliseconds>(HighResClock::now() - startTime);
+        };
+
+        static SearchState GenerateState(
+            const std::vector<olc::vi2d>& figuresPositions,
+            const olc::vi2d& movePosition,
+            const std::shared_ptr<Heuristic> heuristic
+        ) {
+            std::vector<olc::vi2d> newPositions(figuresPositions);
+            newPositions[movePosition.x].y = movePosition.y;
+
+            uint32_t newStateHeuristicValue = heuristic->EvaluateBoard(newPositions);
+            return { newPositions, newStateHeuristicValue };
         };
 
         virtual Solution Solve(

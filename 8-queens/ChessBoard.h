@@ -385,7 +385,9 @@ namespace ntf {
             randomGenerator.seed(static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
             std::uniform_int_distribution uniformDistribution(0, size - 1);
+            
             figuresPositions.clear();
+            currentSolution = {};
 
             for (int i = 0; i < size; i++)
                 figuresPositions.push_back({ i, uniformDistribution(randomGenerator) });
@@ -465,9 +467,6 @@ namespace ntf {
             else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::K).bPressed)
                 IncrementCurrentSolverParam();
 
-            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::S).bPressed)
-                currentSolution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
-
             else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::R).bPressed)
                 ResetCurrentSolverParam();
 
@@ -480,14 +479,23 @@ namespace ntf {
             else if (window->GetKey(olc::G).bPressed)
                 globalHeuristicModeToggled = !globalHeuristicModeToggled;
 
-            else if (window->GetKey(olc::Y).bPressed)
+            else if (window->GetKey(olc::UP).bPressed)
                 currentHeuristicIndex = Window::GetNextArrayIndex(currentHeuristicIndex, heuristics.size());
+
+            else if (window->GetKey(olc::DOWN).bPressed)
+                currentHeuristicIndex = Window::GetPreviousArrayIndex(currentHeuristicIndex, heuristics.size());
 
             else if (window->GetKey(olc::R).bPressed)
                 RandomizePositions();
 
             else if (window->GetKey(olc::S).bPressed)
+                currentSolution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
+
+            else if (window->GetKey(olc::RIGHT).bPressed)
                 currentSolverIndex = Window::GetNextArrayIndex(currentSolverIndex, solvers.size());
+
+            else if (window->GetKey(olc::LEFT).bPressed)
+                currentSolverIndex = Window::GetPreviousArrayIndex(currentSolverIndex, solvers.size());
 
             if (selectedFigureIndex == INVALID_FIGURE && window->GetMouse(0).bHeld)
                 SelectFigure();
