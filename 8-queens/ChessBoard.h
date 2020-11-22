@@ -213,15 +213,18 @@ namespace ntf {
             auto& [positions, duration, generatedStatesCount] = currentSolution;
 
             for (size_t i = 0; i < positions.size(); i++) {
-                auto origPos = GetTilePositionI(figuresPositions.at(i));
-                auto trgPos = GetTilePositionI(positions[i]);
+                auto origPos = GetTilePositionI(figuresPositions.at(i)) + tileSize / 2;
+                auto trgPos = GetTilePositionI(positions[i]) + tileSize / 2;
 
-                window->DrawLine(origPos, trgPos, olc::BLUE, DASHED_LINE_PATTERN);
-                window->FillCircle(trgPos, 2, olc::BLUE);
+                window->DrawLine(origPos, trgPos, olc::MAGENTA, DASHED_LINE_PATTERN);
+                window->FillCircle(trgPos, 2, olc::MAGENTA);
             }
 
             DrawStrings(
-                { "Duration: " + duration.count(), "States generated: " + generatedStatesCount },
+                {
+                    "Duration: " + std::to_string(duration.count()) + "ms",
+                    "States generated: " + std::to_string(generatedStatesCount)
+                },
                 BoardSide::BOTTOM
             );
         }
@@ -384,6 +387,7 @@ namespace ntf {
 
             currentHeuristicResultFigureIndex = INVALID_FIGURE;
             selectedFigureIndex = INVALID_FIGURE;
+            currentSolution = {};
         }
 
         void RandomizePositions()

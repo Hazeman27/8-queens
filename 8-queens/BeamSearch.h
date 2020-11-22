@@ -23,7 +23,7 @@ namespace ntf {
 			SearchStatesQueue queue{};
 			std::unordered_map<std::string, bool> visitedStates{};
 
-			auto newState = [&](const std::vector<olc::vi2d> positions, const olc::vi2d movePos) {
+			auto newState = [&](const std::vector<olc::vi2d>& positions, const olc::vi2d& movePos) {
 
 				std::vector<olc::vi2d> newPositions(positions);
 				newPositions[movePos.x].y = movePos.y;
@@ -54,7 +54,7 @@ namespace ntf {
 				SearchHeuristicValuesQueue subQueue{};
 
 				while (!queue.empty()) {
-					auto& [figuresPositions, stateHeuristicValue] = queue.top();
+					auto [figuresPositions, stateHeuristicValue] = queue.top();
 					queue.pop();
 
 					if (stateHeuristicValue == 0) {
@@ -76,7 +76,7 @@ namespace ntf {
 
 				for (int i = 0; i < beamWidth && !subQueue.empty(); i++) {
 
-					auto& [positions, heuristicValue] = subQueue.top();
+					auto [positions, heuristicValue] = subQueue.top();
 					subQueue.pop();
 
 					auto state = newState(positions, heuristicValue.position);

@@ -22,8 +22,6 @@ namespace ntf {
         }
     };
     
-    using HeuristicValuesQueue = std::priority_queue<HeuristicValue, std::vector<HeuristicValue>, std::greater<HeuristicValue>>;
-
     struct Heuristic {
         std::string name;
 
