@@ -30,6 +30,10 @@ namespace ntf {
                 "<Ctrl> + <R> - Reset solver param",
                 "<Ctrl> + \"+\" - Increase board size",
                 "<Ctrl> + \"-\" - Decrease board size",
+                "<Ctrl> + <SHIFT> + <B> - Toggle bulk tests",
+                "<Ctrl> + <B> - Run bulk tests",
+                "<Ctrl> + <X> - Increase bulk tests by 100",
+                "<Ctrl> + <Z> - Decrease bulk tests by 100",
             });
 
             window->DrawTextBox(Window::PutBelow(commands), {
@@ -38,10 +42,13 @@ namespace ntf {
                 "Click and drag figure, to change its position."
             });
 
-            window->DrawAvailableScreenOptions({
-                BASE_GAP_I,
-                window->ScreenHeight() - window->screenOptionsApproxSize.y - BASE_GAP_I
-            });
+            olc::vi2d helpPos{
+                window->ScreenWidth() - window->screenOptionsApproxSize.x - BASE_GAP_I,
+                TITLE_POSITION.y + BASE_GAP_I,
+            };
+
+            window->FillRect(helpPos, window->screenOptionsApproxSize, window->BgColor());
+            window->DrawAvailableScreenOptions(helpPos);
 
             return true;
         }

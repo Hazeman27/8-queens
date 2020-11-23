@@ -7,7 +7,7 @@
 
 
 namespace ntf {
-    constexpr uint32_t BULK_TESTS_AMOUNT = 100;
+    constexpr uint32_t BULK_TESTS_AMOUNT = 10000;
     constexpr int16_t INVALID_FIGURE = -1;
 
     constexpr uint8_t DEFAULT_BOARD_SIZE = 8U;
@@ -21,16 +21,18 @@ namespace ntf {
     enum class BoardSide { TOP, RIGHT, BOTTOM, LEFT };
 
     struct BulkTestInfo {
-        uint64_t totalDuration;
-        uint64_t totalStatesGenerated;
-        uint32_t currentIteration;
-        uint32_t failedIterations;
+        uint64_t totalDuration = 0;
+        uint64_t totalStatesGenerated = 0;
+        uint32_t currentIteration = 0;
+        uint32_t passedIterations = 0;
+        uint32_t failedIterations = 0;
     };
 
     class ChessBoard : public Screen
     {
     private:
-        bool runBulkTests;
+        bool bulkTestsEnabled;
+        bool isRunningBulkTests;
         bool globalHeuristicModeToggled;
         int16_t currentHeuristicResultFigureIndex;
         int16_t selectedFigureIndex;
@@ -38,6 +40,7 @@ namespace ntf {
         uint8_t currentHeuristicIndex;
         uint8_t currentSolverIndex;
         uint8_t size;
+        uint32_t bulkTestsAmount;
 
         Solution currentSolution;
 
@@ -60,7 +63,8 @@ namespace ntf {
             const std::vector<std::shared_ptr<Solver>> solvers
         ) :
             Screen("Puzzle", olc::P, "P"),
-            runBulkTests(false),
+            bulkTestsEnabled(false),
+            isRunningBulkTests(false),
             globalHeuristicModeToggled(false),
             currentHeuristicResultFigureIndex(INVALID_FIGURE),
             selectedFigureIndex(INVALID_FIGURE),
@@ -68,6 +72,7 @@ namespace ntf {
             currentHeuristicIndex(0),
             currentSolverIndex(0),
             size(DEFAULT_BOARD_SIZE),
+            bulkTestsAmount(BULK_TESTS_AMOUNT),
             currentSolution({}),
             boardPosition{ 0.0f, 0.0f },
             boardSize{ 0.0f, 0.0f },
@@ -76,7 +81,7 @@ namespace ntf {
             solvers(solvers),
             figuresPositions{},
             figures{},
-            bulkTestResults{ 0, 0, 0 }
+            bulkTestResults{}
         {}
 
     private:
@@ -128,16 +133,20 @@ namespace ntf {
 
         void DrawBulkTestResults()
         {
-            auto [duration, statesCount, iteration, failedIterations] = bulkTestResults;
+            auto [duration, statesCount, currentIteration, passedIterations, failedIterations] = bulkTestResults;
 
-            if (duration == 0 && statesCount == 0 && iteration == 0)
+            if (currentIteration == 0)
                 return;
 
+            if (currentIteration < bulkTestsAmount && passedIterations == 0)
+                passedIterations = 1;
+
             DrawStrings({
-                "Bulk test #" + std::to_string(iteration),
-                "Failed iterations #" + std::to_string(failedIterations),
-                "Average duration: " + std::to_string(duration / iteration) + "ms",
-                "Average states count: " + std::to_string(statesCount / iteration),
+                "Total iterations: " + std::to_string(currentIteration),
+                "Passed iterations: " + std::to_string(passedIterations),
+                "Failed iterations: " + std::to_string(failedIterations),
+                "Avg. time: " + std::to_string(duration / passedIterations) + " microsec",
+                "Avg. nodes: " + std::to_string(statesCount / passedIterations),
             }, BoardSide::BOTTOM);
         }
 
@@ -217,7 +226,7 @@ namespace ntf {
                 DrawStrings(
                     {
                         "Failed to find solution... ",
-                        "Duration: " + std::to_string(currentSolution.duration.count()) + "ms"
+                        "Duration: " + std::to_string(currentSolution.duration.count()) + " microsec."
                     },
                     BoardSide::BOTTOM
                 );
@@ -239,7 +248,7 @@ namespace ntf {
 
             DrawStrings(
                 {
-                    "Duration: " + std::to_string(duration.count()) + "ms",
+                    "Duration: " + std::to_string(duration.count()) + " microsec.",
                     "States generated: " + std::to_string(generatedStatesCount)
                 },
                 BoardSide::BOTTOM
@@ -395,7 +404,7 @@ namespace ntf {
 
         void SetBoardMeasures()
         {
-            float boardWidth = window->ScreenWidth() / 2.2f + BASE_GAP_I;
+            float boardWidth = window->ScreenWidth() / 2.5f + BASE_GAP_I;
             float tileWidth = std::floorf(boardWidth / size);
 
             boardPosition = { window->ScreenWidth() / 2.0f, (window->ScreenHeight() - boardWidth) / 2.0f };
@@ -405,7 +414,7 @@ namespace ntf {
             currentHeuristicResultFigureIndex = INVALID_FIGURE;
             selectedFigureIndex = INVALID_FIGURE;
             currentSolution = {};
-            bulkTestResults = { 0, 0, 0 };
+            bulkTestResults = {};
         }
 
         void RandomizePositions()
@@ -426,6 +435,29 @@ namespace ntf {
             if (!CurrentSolver()->param.isUsed)
                 return;
             CurrentSolver()->param.value = CurrentSolver()->param.defaultValue;
+        }
+
+        void RunBulkTest()
+        {
+            if (bulkTestResults.currentIteration == bulkTestsAmount) {
+                isRunningBulkTests = false;
+                return;
+            }
+
+            auto solution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
+
+            if (solution.figuresPositions.size() == 0 && solution.duration.count() > 0) {
+                bulkTestResults.failedIterations++;
+            }
+
+            else {
+                bulkTestResults.totalDuration += solution.duration.count();
+                bulkTestResults.totalStatesGenerated += solution.generatedStatesCount;
+                bulkTestResults.passedIterations++;
+            }
+
+            RandomizePositions();
+            bulkTestResults.currentIteration++;
         }
 
     public:
@@ -461,27 +493,8 @@ namespace ntf {
             DrawSolution();
             DrawBulkTestResults();
 
-            if (runBulkTests) {
-
-                if (bulkTestResults.currentIteration == BULK_TESTS_AMOUNT)
-                    runBulkTests = false;
-                
-                else {
-                    auto solution = CurrentSolver()->Solve(figuresPositions, CurrentSolver()->param, CurrentHeuristic());
-
-                    if (solution.figuresPositions.size() == 0 && solution.duration.count() > 0) {
-                        bulkTestResults.failedIterations++;
-                    }
-                    
-                    else {
-                        bulkTestResults.totalDuration += solution.duration.count();
-                        bulkTestResults.totalStatesGenerated += solution.generatedStatesCount;
-
-                        RandomizePositions();
-                        bulkTestResults.currentIteration++;
-                    }
-                }
-            }
+            if (bulkTestsEnabled && isRunningBulkTests)
+                RunBulkTest();
 
             BoundingRect info = window->DrawTextBox(
                 { BASE_GAP_I, static_cast<int>(boardPosition.y) },
@@ -496,7 +509,11 @@ namespace ntf {
                 }
             );
 
-            window->DrawAvailableScreenOptions(Window::PutBelow(info));
+            BoundingRect help = window->DrawAvailableScreenOptions(Window::PutBelow(info));
+
+            if (bulkTestsEnabled) {
+                window->DrawTextBox(Window::PutBelow(help), { "Bulk tests amount: " + std::to_string(bulkTestsAmount) }, false);
+            }
 
             DrawStrings({ std::to_string(size) + " " + CurrentFigure()->name + "s puzzle" }, BoardSide::TOP);
 
@@ -521,11 +538,31 @@ namespace ntf {
             else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::R).bPressed)
                 ResetCurrentSolverParam();
 
-            /* FOR BULK TESTS */
-            /*else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::B).bPressed) {
-                runBulkTests = !runBulkTests;
-                bulkTestResults = { 0, 0, 0 };
-            }*/
+            /* FOR BULK TESTS ::START:: */
+            else if (window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::SHIFT).bHeld && window->GetKey(olc::B).bPressed) {
+                bulkTestsEnabled = !bulkTestsEnabled;
+            }
+
+            else if (bulkTestsEnabled && window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::X).bPressed) {
+                if (bulkTestsAmount < UINT32_MAX)
+                    bulkTestsAmount += 100;
+            }
+
+            else if (bulkTestsEnabled && window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::Z).bPressed) {
+                if (bulkTestsAmount > 0)
+                    bulkTestsAmount -= 100;
+            }
+
+            else if (bulkTestsEnabled && window->GetKey(olc::CTRL).bHeld && window->GetKey(olc::B).bPressed) {
+                
+                if (isRunningBulkTests) 
+                    isRunningBulkTests = false;
+                else {
+                    isRunningBulkTests = true;
+                    bulkTestResults = {};
+                }
+            }
+            /* FOR BULK TESTS ::END:: */
 
             else if (window->GetKey(olc::SHIFT).bHeld && Window::MouseIsInRectBounds(boardPosition, boardSize, window->GetMouseX(), window->GetMouseY()))
                 HighlightThreats();

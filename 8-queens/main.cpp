@@ -25,7 +25,7 @@ int main()
 
 	std::shared_ptr<ntf::Window> window(new ntf::Window({ board, help, menu }, { dark, green, pink }, 0));
 
-	if (window->Construct(460, 350, 2, 2))
+	if (window->Construct(480, 340, 2, 2))
 		window->Start();
 
 	return 0;

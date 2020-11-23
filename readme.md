@@ -63,30 +63,49 @@ struct SearchState {
 
 Below is a table with some testing results:
 
-| Search type | ***k*** / ***n*** param | Heuristic type | Board size | *Iterations count | Failed iterations| Average duration    | Average nodes count |
-|-------------|-------------------------|----------------|------------|-------------------|------------------|---------------------|---------------------|
-| Beam search | 8                       | Global threats | 8 x 8      | 2586              | 1586             | 37ms                | 1702                |
-| Beam search | 8                       | Local threats  | 8 x 8      | 2626              | 1626             | 212ms               | 1701                |
-| Beam search | 16                      | Global threats | 8 x 8      | 1115              | 115              | 71ms                | 3196                |
-| Beam search | 16                      | Local threats  | 8 x 8      | 1081              | 81               | 411ms               | 3216                |
-| Beam search | 32                      | Global threats | 8 x 8      | 1000              | 0                | 123ms               | 5498                |
-| Beam search | 32                      | Local threats  | 8 x 8      | 1000              | 0                | 740ms               | 5731                |
-| Beam search | 32                      | Global threats | 16 x 16    | 105               | 5                | 1127ms              | 49632               |
-| Beam search | 64                      | Global threats | 16 x 16    | 100               | 0                | 2033ms              | 92784               |
-| Beam search | 128                     | Global threats | 16 x 16    | 100               | 0                | 3634ms              | 172154              |
-| Tabu search | 8                       | Global threats | 8 x 8      | 1000              | 0                | 110ms               | 2578                |
-| Tabu search | 8                       | Local threats  | 8 x 8      | 1000              | 0                | 325ms               | 2800                |
-| Tabu search | 16                      | Global threats | 8 x 8      | 1000              | 0                | 97ms                | 2255                |
-| Tabu search | 16                      | Local threats  | 8 x 8      | 1000              | 0                | 288ms               | 2406                |
-| Tabu search | 32                      | GLobal threats | 8 x 8      | 1000              | 0                | 96ms                | 2221                |
-| Tabu search | 32                      | Local threats  | 8 x 8      | 1000              | 0                | 293ms               | 2297                |
-| Tabu search | 32                      | Global threats | 16 x 16    | 100               | 0                | 1562ms              | 23797               |
-| Tabu search | 64                      | Global threats | 16 x 16    | 100               | 0                | 1268ms              | 20454               |
-| Tabu search | 128                     | Global threats | 16 x 16    | 100               | 0                | 1097ms              | 18391               |
-| Tabu search | 256                     | Global threats | 16 x 16    | 100               | 0                | 1101ms              | 18465               |
+### Beam search
 
+| Beam width | Heuristic type | Board size | *Iterations count | Failed iterations | Avg. duration | Avg. nodes count |
+|------------|----------------|------------|-------------------|-------------------|---------------|------------------|
+| 8          | Local threats  | 8 x 8      | 10000             | 3405              | 3096 *µs*     | 1665             |
+| 8          | Global threats | 8 x 8      | 10000             | 3563              | 1105 *µs*     | 1670             |
+| 16         | Local threats  | 8 x 8      | 10000             | 709               | 5681 *µs*     | 3126             |
+| 16         | Global threats | 8 x 8      | 10000             | 674               | 1952 *µs*     | 3137             |
+| 32         | Local threats  | 8 x 8      | 10000             | 21                | 10145 *µs*    | 5500             |
+| 32         | Global threats | 8 x 8      | 10000             | 26                | 3277 *µs*     | 5487             |
+| 48         | Local threats  | 8 x 8      | 10000             | 0                 | 14915 *µs*    | 7622             |
+| 48         | Global threats | 8 x 8      | 10000             | 1                 | 4454 *µs*     | 7611             |
+| 48         | Local threats  | 16 x 16    | 1000              | 1                 | 234110 *µs*   | 71603            |
+| 48         | Global threats | 16 x 16    | 1000              | 3                 | 83167 *µs*    | 71503            |
+| 64         | Local threats  | 16 x 16    | 1000              | 0                 | 305245 *µs*   | 92421            |
+| 64         | Global threats | 16 x 16    | 1000              | 0                 | 106990 *µs*   | 91374            |
+
+### Tabu search
+
+| Tabu list max size | Heuristic type | Board size | *Iterations count | Failed iterations | Avg. duration | Avg. nodes count |
+|--------------------|----------------|------------|-------------------|-------------------|---------------|------------------|
+| 8                  | Local threats  | 8 x 8      | 10000             | 0                 | 6481 *µs*     | 2618             |
+| 8                  | Global threats | 8 x 8      | 10000             | 0                 | 3734 *µs*     | 2587             |
+| 16                 | Local threats  | 8 x 8      | 10000             | 1                 | 5418 *µs*     | 2302             |
+| 16                 | Global threats | 8 x 8      | 10000             | 0                 | 3585 *µs*     | 2363             |
+| 32                 | Local threats  | 8 x 8      | 10000             | 0                 | 5158 *µs*     | 2159             |
+| 32                 | Global threats | 8 x 8      | 10000             | 0                 | 3018 *µs*     | 2094             |
+| 64                 | Local threats  | 8 x 8      | 10000             | 0                 | 5001 *µs*     | 2090             |
+| 64                 | Global threats | 8 x 8      | 10000             | 0                 | 3139 *µs*     | 2058             |
+| 64                 | Local threats  | 16 x 16    | 1000              | 0                 | 92554 *µs*    | 21470            |
+| 64                 | Global threats | 16 x 16    | 1000              | 0                 | 63238 *µs*    | 21238            |
+| 128                | Local threats  | 16 x 16    | 1000              | 0                 | 76764 *µs*    | 18351            |
+| 128                | Global threats | 16 x 16    | 1000              | 0                 | 56112 *µs*    | 20323            |
+| 256                | Local threats  | 16 x 16    | 1000              | 0                 | 82747 *µs*    | 20310            |
+| 256                | Global threats | 16 x 16    | 1000              | 0                 | 57262 *µs*    | 19491            |
 
 *Iterations count is the amount of ran tests for the given configuration.
+
+Tests were conducted on a laptop with these parameters:
+
+| Processor                    | RAM   | OS                      |
+|------------------------------|-------|-------------------------|
+| Intel Core i7-7700HQ 2.80GHz | 16 GB | Windows 10 Home (64bit) |
 
 ## Conclusion
 

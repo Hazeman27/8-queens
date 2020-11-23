@@ -8,7 +8,7 @@ namespace ntf {
  
     using HighResClock = std::chrono::high_resolution_clock;
     using TimePoint = std::chrono::high_resolution_clock::time_point;
-    using Milliseconds = std::chrono::milliseconds;
+    using Microseconds = std::chrono::microseconds;
 
     struct SearchState {
         std::vector<olc::vi2d> figuresPositions;
@@ -75,7 +75,7 @@ namespace ntf {
 
     struct Solution {
         std::vector<olc::vi2d> figuresPositions;
-        Milliseconds duration = std::chrono::milliseconds::zero();
+        Microseconds duration = std::chrono::microseconds::zero();
 
         int generatedStatesCount;
 
@@ -113,8 +113,8 @@ namespace ntf {
         Solver(std::string&& name, SolverParam&& param) : name(std::move(name)), param(std::move(param))
         {}
 
-        static Milliseconds TakeTimeStamp(TimePoint startTime) {
-            return std::chrono::duration_cast<Milliseconds>(HighResClock::now() - startTime);
+        static Microseconds TakeTimeStamp(TimePoint startTime) {
+            return std::chrono::duration_cast<Microseconds>(HighResClock::now() - startTime);
         };
 
         static SearchState GenerateState(
