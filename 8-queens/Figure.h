@@ -8,8 +8,8 @@ namespace ntf {
     public:
         std::string name;
 
-        std::vector<olc::Sprite*> blackSprites;
-        std::vector<olc::Sprite*> whiteSprites;
+        std::vector<std::shared_ptr<olc::Sprite>> blackSprites;
+        std::vector<std::shared_ptr<olc::Sprite>> whiteSprites;
 
         Figure(
             const std::string& name,
@@ -19,22 +19,24 @@ namespace ntf {
         ) : name(name), blackSprites{}, whiteSprites{}
         {
             for (auto& spritePath : blackSpritePaths)
-                blackSprites.push_back(new olc::Sprite(spritePath, window->resourcePack));
+                blackSprites.push_back(std::make_shared<olc::Sprite>(spritePath, window->resourcePack));
 
             for (auto& spritePath : whiteSpritePaths)
-                whiteSprites.push_back(new olc::Sprite(spritePath, window->resourcePack));
+                whiteSprites.push_back(std::make_shared<olc::Sprite>(spritePath, window->resourcePack));
         }
 
-        ~Figure()
+        Figure(
+            std::string&& name,
+            std::vector<std::string>&& blackSpritePaths,
+            std::vector<std::string>&& whiteSpritePaths,
+            const std::shared_ptr<Window> window
+        ) : name(std::move(name)), blackSprites{}, whiteSprites{}
         {
-            for (auto& sprite : blackSprites)
-                delete sprite;
+            for (auto& spritePath : blackSpritePaths)
+                blackSprites.push_back(std::make_shared<olc::Sprite>(spritePath, window->resourcePack));
 
-            for (auto& sprite : whiteSprites)
-                delete sprite;
-
-            blackSprites.clear();
-            whiteSprites.clear();
+            for (auto& spritePath : whiteSpritePaths)
+                whiteSprites.push_back(std::make_shared<olc::Sprite>(spritePath, window->resourcePack));
         }
     };
 }

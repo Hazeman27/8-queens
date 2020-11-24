@@ -14,6 +14,15 @@ namespace ntf {
         std::vector<olc::vi2d> figuresPositions;
         uint32_t heuristicValue;
 
+        SearchState() = default;
+        SearchState(const std::vector<olc::vi2d>& figuresPositions, uint32_t heuristicValue)
+            : figuresPositions(figuresPositions), heuristicValue(heuristicValue)
+        {}
+
+        SearchState(std::vector<olc::vi2d>&& figuresPositions, uint32_t heuristicValue)
+            : figuresPositions(std::move(figuresPositions)), heuristicValue(heuristicValue)
+        {}
+
         bool operator == (const SearchState& other) const {
             if (figuresPositions.size() != other.figuresPositions.size())
                 return false;

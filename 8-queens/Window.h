@@ -125,6 +125,28 @@ namespace ntf {
             }
         }
 
+        Window(
+            std::vector<std::shared_ptr<Screen>>&& screens,
+            std::vector<std::shared_ptr<Theme>>&& themes,
+            uint32_t defaultScreen = DEFAULT_SCREEN,
+            uint32_t defaultTheme = DEFAULT_THEME
+        ) :
+            inspectionModeToggled(false),
+            currentScreenIndex(defaultScreen),
+            currentThemeIndex(defaultTheme),
+            screenOptionsApproxSize({ 0, static_cast<int>(screens.size() * STRING_HEIGHT_I) }),
+            screens(std::move(screens)),
+            themes(std::move(themes)),
+            resourcePack(new olc::ResourcePack())
+        {
+            sAppName = APP_NAME;
+
+            if (!resourcePack->LoadPack(RESOURCE_PACK_NAME, RESOURCE_PACK_KEY)) {
+                if (CreateResourcePack() && !resourcePack->LoadPack(RESOURCE_PACK_NAME, RESOURCE_PACK_KEY))
+                    resourcePack = nullptr;
+            }
+        }
+
         ~Window() { delete resourcePack; }
 
     private:

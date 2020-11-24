@@ -20,10 +20,10 @@ namespace ntf {
 			int tabuListMaxSize = param.value;
 			uint64_t popDepth = 1;
 
-			std::shared_ptr<SearchState> bestFit(new SearchState{
+			std::shared_ptr<SearchState> bestFit(std::make_shared<SearchState>(
 				figuresPositions,
 				heuristic->EvaluateBoard(figuresPositions)
-			});
+			));
 
 			std::unordered_map<std::string, bool> tabuList{ {bestFit->Serialize(), true} };
 			SearchStatesQueue fitnessQueue;

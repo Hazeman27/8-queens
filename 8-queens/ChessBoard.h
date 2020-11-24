@@ -122,7 +122,7 @@ namespace ntf {
                     olc::Pixel borderColor(window->FgColor());
 
                     if (selectedFigureIndex != INVALID_FIGURE && j != figuresPositions.at(selectedFigureIndex).x)
-                        fillColor = olc::Pixel(3, 100, 48);
+                        fillColor = window->BgColor();
                     else
                         fillColor = GetTileColor(j, i);
 
@@ -168,12 +168,12 @@ namespace ntf {
                 else
                     pos = GetTilePosition(position) + (tileSize - currentFigureSpriteSize) / 2.0f;
 
-                olc::Sprite* sprite = GetTileColorType(position.x, position.y) == TileColor::WHITE
+                std::shared_ptr<olc::Sprite> sprite = GetTileColorType(position.x, position.y) == TileColor::WHITE
                     ? figure->blackSprites.at(window->currentThemeIndex)
                     : figure->whiteSprites.at(window->currentThemeIndex);
 
                 window->SetPixelMode(olc::Pixel::MASK);
-                window->DrawSprite(pos, sprite);
+                window->DrawSprite(pos, sprite.get());
                 window->SetPixelMode(olc::Pixel::NORMAL);
             }
         }
@@ -609,12 +609,12 @@ namespace ntf {
         {
             this->window = window;
 
-            std::shared_ptr<Figure> bishop (new Figure("Bishop", window->GetThemeFilesPaths("black_bishop.png"), window->GetThemeFilesPaths("white_bishop.png"), window));
-            std::shared_ptr<Figure> king   (new Figure("King",   window->GetThemeFilesPaths("black_king.png"),   window->GetThemeFilesPaths("white_king.png"),   window));
-            std::shared_ptr<Figure> knight (new Figure("Knight", window->GetThemeFilesPaths("black_knight.png"), window->GetThemeFilesPaths("white_knight.png"), window));
-            std::shared_ptr<Figure> pawn   (new Figure("Pawn",   window->GetThemeFilesPaths("black_pawn.png"),   window->GetThemeFilesPaths("white_pawn.png"),   window));
-            std::shared_ptr<Figure> queen  (new Figure("Queen",  window->GetThemeFilesPaths("black_queen.png"),  window->GetThemeFilesPaths("white_queen.png"),  window));
-            std::shared_ptr<Figure> rook   (new Figure("Rook",   window->GetThemeFilesPaths("black_rook.png"),   window->GetThemeFilesPaths("white_rook.png"),   window));
+            std::shared_ptr<Figure> bishop (std::make_shared<Figure>("Bishop", window->GetThemeFilesPaths("black_bishop.png"), window->GetThemeFilesPaths("white_bishop.png"), window));
+            std::shared_ptr<Figure> king   (std::make_shared<Figure>("King",   window->GetThemeFilesPaths("black_king.png"),   window->GetThemeFilesPaths("white_king.png"),   window));
+            std::shared_ptr<Figure> knight (std::make_shared<Figure>("Knight", window->GetThemeFilesPaths("black_knight.png"), window->GetThemeFilesPaths("white_knight.png"), window));
+            std::shared_ptr<Figure> pawn   (std::make_shared<Figure>("Pawn",   window->GetThemeFilesPaths("black_pawn.png"),   window->GetThemeFilesPaths("white_pawn.png"),   window));
+            std::shared_ptr<Figure> queen  (std::make_shared<Figure>("Queen",  window->GetThemeFilesPaths("black_queen.png"),  window->GetThemeFilesPaths("white_queen.png"),  window));
+            std::shared_ptr<Figure> rook   (std::make_shared<Figure>("Rook",   window->GetThemeFilesPaths("black_rook.png"),   window->GetThemeFilesPaths("white_rook.png"),   window));
   
             figures = { bishop, king, knight, pawn, queen, rook };
 

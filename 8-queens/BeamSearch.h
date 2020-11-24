@@ -35,7 +35,7 @@ namespace ntf {
 
 			SearchStatesQueue queue;
 			
-			std::shared_ptr<SearchState> currentState(new SearchState());
+			std::shared_ptr<SearchState> currentState(std::make_shared<SearchState>());
 			std::unordered_map<std::string, bool> visitedStates{};
 
 			for (int i = 0; i < beamWidth; i++) {
