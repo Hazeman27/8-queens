@@ -38,13 +38,19 @@ namespace ntf {
 			std::shared_ptr<SearchState> currentState(std::make_shared<SearchState>());
 			std::unordered_map<std::string, bool> visitedStates{};
 
-			for (int i = 0; i < beamWidth; i++) {
+			for (int i = 0; i < beamWidth;) {
 
 				int randomCol = distribution(randomEngine);
 				int randomRow = distribution(randomEngine);
 
 				*currentState = std::move(GenerateState(figuresPositions, { randomCol, randomRow }, heuristic));
+				std::string stateKey = std::move(currentState->Serialize());
+
+				if (visitedStates.find(stateKey) != visitedStates.end())
+					continue;
+				
 				generatedStatesCount++;
+				i++;
 
 				if (currentState->heuristicValue == 0) {
 					return {
@@ -55,7 +61,7 @@ namespace ntf {
 				}
 
 				queue.push(std::move(*currentState));
-				visitedStates.insert({ currentState->Serialize(), true });
+				visitedStates.insert({ stateKey, true });
 			}
 
 			while (!queue.empty()) {
